@@ -1,0 +1,14 @@
+{
+  "functions": {
+    "functions/send_order_notification/index.js": {
+      "memory": 1024,
+      "maxDuration": 60
+    }
+  },
+  "env": {
+    "RESEND_API_KEY": "@resend_api_key",
+    "FROM_EMAIL": "@from_email",
+    "FROM_NAME": "@from_name",
+    "ADMIN_EMAIL": "@admin_email"
+  }
+}
