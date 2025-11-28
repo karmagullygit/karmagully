@@ -11,7 +11,7 @@ import '../models/order.dart';
 class NotificationService {
   // Configure this to your deployed serverless endpoint (recommended).
   // Example: https://your-deployment.vercel.app/api/send-order
-  static const String serverlessEndpoint = '<YOUR_SERVERLESS_ENDPOINT>'; // set to real URL
+  static const String serverlessEndpoint = 'https://karmagully.vercel.app/api/send-order-notification'; // Vercel deployment URL
 
   // Fallback direct Resend usage (not recommended for production).
   static const String resendApiKey = '<YOUR_RESEND_API_KEY_HERE>';
