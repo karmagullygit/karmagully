@@ -16,7 +16,7 @@ class NotificationService {
   // Fallback direct Resend usage (not recommended for production).
   static const String resendApiKey = '<YOUR_RESEND_API_KEY_HERE>';
   static const String fromEmail = 'onboarding@resend.dev';
-  static const String fromName = 'Karma Shop';
+  static const String fromName = 'KarmaGully';
   static const String adminEmail = 'karmagully0@gmail.com';
 
   /// Send order notification; prefers serverless endpoint.
