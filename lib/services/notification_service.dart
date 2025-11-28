@@ -60,7 +60,7 @@ class NotificationService {
     body.writeln('Total: ₹${order.totalAmount.toStringAsFixed(2)}');
     body.writeln('Items:');
     for (final item in order.items) {
-      body.writeln('- ${item.product.title} x${item.quantity} @ ₹${item.product.price}');
+      body.writeln('- ${item.product.name} x${item.quantity} @ ₹${item.product.price}');
     }
     body.writeln('\nShipping address: ${order.shippingAddress}');
     if (order.notes != null && order.notes!.isNotEmpty) {

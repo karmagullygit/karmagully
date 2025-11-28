@@ -60,22 +60,8 @@ class _HomeScreenState extends State<HomeScreen> {
       // Show floating video ad after 3 seconds
       Future.delayed(const Duration(seconds: 3), () {
         if (mounted) {
-
-            context,
-            title: '� Product Showcase',
-            message: 'Check out our latest products in action!',
-            adType: 'video',
-            videoUrl: 'https://sample-videos.com/zip/10/mp4/SampleVideo_1280x720_1mb.mp4',
-            onTap: () {
-              // Handle ad tap - could navigate to a specific product or category
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Opening product showcase...')),
-              );
-            },
-            onClose: () {
-              // Handle ad close if needed
-              print('Video ad closed by user');
-            },
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Video ad would appear here')),
           );
         }
       });
