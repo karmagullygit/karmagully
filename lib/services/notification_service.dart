@@ -17,7 +17,7 @@ class NotificationService {
   static const String resendApiKey = '<YOUR_RESEND_API_KEY_HERE>';
   static const String fromEmail = 'onboarding@resend.dev';
   static const String fromName = 'Karma Shop';
-  static const String adminEmail = 'contactkarmagully@gmail.com';
+  static const String adminEmail = 'karmagully0@gmail.com';
 
   /// Send order notification; prefers serverless endpoint.
   static Future<bool> sendOrderNotification(Order order) async {

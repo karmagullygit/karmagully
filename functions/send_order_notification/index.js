@@ -25,7 +25,7 @@ exports.handler = async function (event, context) {
     const RESEND_API_KEY = process.env.RESEND_API_KEY;
     const FROM_EMAIL = process.env.FROM_EMAIL || 'onboarding@resend.dev';
     const FROM_NAME = process.env.FROM_NAME || 'Karma Shop';
-    const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'contactkarmagully@gmail.com';
+    const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'karmagully0@gmail.com';
 
     if (!RESEND_API_KEY) {
       return {
