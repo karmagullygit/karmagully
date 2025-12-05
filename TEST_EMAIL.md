@@ -11,11 +11,13 @@
 
 2. **Add These Environment Variables** (if missing):
    ```
-   RESEND_API_KEY = re_CYmQCeaV_EveNE3zJEH7xtFHNPh4c2Mnp
+   RESEND_API_KEY = <your_resend_api_key_here>
    FROM_EMAIL = onboarding@resend.dev
    FROM_NAME = KarmaGully
    ADMIN_EMAIL = karmagully0@gmail.com
    ```
+   
+   **Get your API key from**: https://resend.com/api-keys
 
 3. **Redeploy** (IMPORTANT!):
    - After adding environment variables, go to **Deployments** tab
