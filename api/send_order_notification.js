@@ -43,7 +43,7 @@ export default async function handler(req, res) {
     text += `Items:\n`;
     if (Array.isArray(order.items)) {
       for (const it of order.items) {
-        const title = it.product?.title || it.title || 'Item';
+        const title = it.product?.name || it.product?.title || it.title || 'Item';
         const qty = it.quantity || 1;
         const price = it.product?.price ?? it.price ?? 'N/A';
         text += `- ${title} x${qty} @ ₹${price}\n`;

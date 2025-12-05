@@ -649,7 +649,8 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   // Combined carousel and search section with search overlapping carousel
-  Widget _buildCarouselWithSearchSection(BuildContext context, bool isDarkMode) {
+  // TODO: This function is currently unused but kept for future reference
+  // Widget _buildCarouselWithSearchSection(BuildContext context, bool isDarkMode) {
     return SliverToBoxAdapter(
       child: Consumer<AdvertisementProvider>(
         builder: (context, adProvider, child) {
