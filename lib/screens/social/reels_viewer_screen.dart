@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:video_player/video_player.dart';
+import 'package:share_plus/share_plus.dart';
 
 class ReelsViewerScreen extends StatefulWidget {
   final List<Map<String, dynamic>> stories;
@@ -231,6 +232,173 @@ class _ReelsViewerScreenState extends State<ReelsViewerScreen> {
     );
   }
 
+  void _shareStory(Map<String, dynamic> story) {
+    final shareText = '${story['caption'] ?? 'Check out this amazing content!'}\n\nShared from KarmaShop Community';
+    Share.share(shareText);
+  }
+
+  void _showMoreOptions(BuildContext context, Map<String, dynamic> story) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: const BoxDecoration(
+          color: Color(0xFF1C1F26),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                margin: const EdgeInsets.symmetric(vertical: 12),
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.white24,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              ListTile(
+                leading: const Icon(Icons.share_outlined, color: Color(0xFF6B73FF)),
+                title: const Text('Share', style: TextStyle(color: Colors.white)),
+                onTap: () {
+                  Navigator.pop(context);
+                  _shareStory(story);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.link, color: Color(0xFF6B73FF)),
+                title: const Text('Copy Link', style: TextStyle(color: Colors.white)),
+                onTap: () {
+                  Navigator.pop(context);
+                  Clipboard.setData(const ClipboardData(text: 'https://karmashop.com/reels'));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Link copied to clipboard'),
+                      backgroundColor: Color(0xFF6B73FF),
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.bookmark_outline, color: Color(0xFF6B73FF)),
+                title: const Text('Save', style: TextStyle(color: Colors.white)),
+                onTap: () {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Saved to bookmarks'),
+                      backgroundColor: Color(0xFF6B73FF),
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
+                },
+              ),
+              const Divider(color: Colors.white12, height: 1),
+              ListTile(
+                leading: const Icon(Icons.flag_outlined, color: Colors.orange),
+                title: const Text('Report', style: TextStyle(color: Colors.white)),
+                onTap: () {
+                  Navigator.pop(context);
+                  _showReportDialog(context);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.block_outlined, color: Colors.red),
+                title: const Text('Not Interested', style: TextStyle(color: Colors.white)),
+                onTap: () {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('We\'ll show you fewer posts like this'),
+                      backgroundColor: Color(0xFF6B73FF),
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showReportDialog(BuildContext context) {
+    String? selectedReason;
+    final reasons = [
+      'Spam',
+      'Harassment or bullying',
+      'False information',
+      'Hate speech',
+      'Violence or dangerous content',
+      'Nudity or sexual content',
+      'Scam or fraud',
+      'Other',
+    ];
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          backgroundColor: const Color(0xFF1C1F26),
+          title: const Text('Report Content', style: TextStyle(color: Colors.white)),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Why are you reporting this?',
+                  style: TextStyle(color: Colors.white70, fontSize: 14),
+                ),
+                const SizedBox(height: 16),
+                ...reasons.map((reason) => RadioListTile<String>(
+                  title: Text(reason, style: const TextStyle(color: Colors.white)),
+                  value: reason,
+                  groupValue: selectedReason,
+                  activeColor: const Color(0xFF6B73FF),
+                  contentPadding: EdgeInsets.zero,
+                  dense: true,
+                  onChanged: (value) {
+                    setState(() => selectedReason = value);
+                  },
+                )),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text('Cancel', style: TextStyle(color: Colors.white.withOpacity(0.7))),
+            ),
+            ElevatedButton(
+              onPressed: selectedReason != null
+                  ? () {
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Thank you for reporting. We\'ll review this content.'),
+                          backgroundColor: Color(0xFF6B73FF),
+                        ),
+                      );
+                    }
+                  : null,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF6B73FF),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              child: const Text('Submit'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   void dispose() {
     _pageController.dispose();
@@ -407,7 +575,7 @@ class _ReelsViewerScreenState extends State<ReelsViewerScreen> {
                     
                     // Share Button
                     GestureDetector(
-                      onTap: () {},
+                      onTap: () => _shareStory(story),
                       child: Column(
                         children: [
                           const Icon(Icons.send, color: Colors.white, size: 32),
@@ -428,7 +596,7 @@ class _ReelsViewerScreenState extends State<ReelsViewerScreen> {
                     // More Button
                     IconButton(
                       icon: const Icon(Icons.more_vert, color: Colors.white, size: 28),
-                      onPressed: () {},
+                      onPressed: () => _showMoreOptions(context, story),
                     ),
                   ],
                 ),

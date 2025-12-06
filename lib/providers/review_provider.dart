@@ -21,6 +21,12 @@ class ReviewProvider extends ChangeNotifier {
       ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
   }
 
+  // Get reviews by a specific user
+  List<ProductReview> getUserReviews(String userId) {
+    return _reviews.where((review) => review.userId == userId).toList()
+      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+  }
+
   // Get rating summary for a product
   ProductRating getProductRating(String productId) {
     if (_productRatings.containsKey(productId)) {

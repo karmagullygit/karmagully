@@ -31,8 +31,39 @@ class SocialFeedProvider extends ChangeNotifier {
     return _postComments[postId] ?? [];
   }
 
+  // Get trending posts based on engagement metrics
+  List<SocialPost> getTrendingPosts({int minViews = 100}) {
+    // Calculate trending score based on multiple factors
+    final trendings = _posts.map((post) {
+      // Trending score formula: 
+      // (views * 0.3) + (likes * 2) + (comments * 3) + (shares * 5) - (age_penalty)
+      final hoursSincePost = DateTime.now().difference(post.createdAt).inHours;
+      final agePenalty = hoursSincePost * 0.5; // Older posts get penalized
+      
+      final score = (post.viewsCount * 0.3) + 
+                   (post.likesCount * 2) + 
+                   (post.commentsCount * 3) + 
+                   (post.sharesCount * 5) - 
+                   agePenalty;
+      
+      return {'post': post, 'score': score};
+    }).where((item) {
+      // Filter posts with minimum views and positive score
+      final post = item['post'] as SocialPost;
+      // Require higher engagement for trending (at least 100 views and 50 likes)
+      return post.viewsCount >= minViews && 
+             post.likesCount >= 50 && 
+             (item['score'] as double) > 100;
+    }).toList();
+    
+    // Sort by score descending
+    trendings.sort((a, b) => (b['score'] as double).compareTo(a['score'] as double));
+    
+    // Return only top 5 trending posts
+    return trendings.take(5).map((item) => item['post'] as SocialPost).toList();
+  }
+
   SocialFeedProvider() {
-    _loadSampleData();
     loadPosts();
     loadStories();
   }
@@ -52,6 +83,15 @@ class SocialFeedProvider extends ChangeNotifier {
         final List<dynamic> decoded = json.decode(postsJson);
         _posts = decoded.map((item) => SocialPost.fromJson(item)).toList();
         _posts.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+        
+        debugPrint('📱 Loaded ${_posts.length} posts from storage');
+        for (var post in _posts) {
+          debugPrint('  - ${post.username}: ${post.content.substring(0, post.content.length > 30 ? 30 : post.content.length)}... (views: ${post.viewsCount})');
+        }
+      } else {
+        // No saved posts, load sample data
+        _loadSampleData();
+        debugPrint('📱 Loaded ${_posts.length} sample posts');
       }
 
       if (commentsJson != null) {
@@ -427,8 +467,10 @@ class SocialFeedProvider extends ChangeNotifier {
 
   // Load sample data
   void _loadSampleData() {
-    if (_posts.isEmpty) {
-      final now = DateTime.now();
+    // Only add sample data if no posts exist
+    if (_posts.isNotEmpty) return;
+    
+    final now = DateTime.now();
       
       _posts = [
         SocialPost(
@@ -478,6 +520,95 @@ class SocialFeedProvider extends ChangeNotifier {
           viewsCount: 423,
           likedBy: ['user_1', 'user_2', 'user_3', 'user_5', 'user_6'],
           tags: ['travel', 'tokyo', 'japan'],
+        ),
+        SocialPost(
+          id: 'post_4',
+          userId: 'user_5',
+          username: 'emma_fitness',
+          userAvatar: '💪',
+          userDisplayName: 'Emma Rodriguez',
+          content: 'Morning workout completed! 💪 Remember, consistency is key. Start your day with energy! #fitness #motivation #workout',
+          type: PostType.image,
+          mediaUrls: ['https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=800'],
+          createdAt: now.subtract(const Duration(hours: 1)),
+          updatedAt: now.subtract(const Duration(hours: 1)),
+          likesCount: 156,
+          commentsCount: 34,
+          sharesCount: 12,
+          viewsCount: 1240,
+          likedBy: ['user_1', 'user_2', 'user_3'],
+          tags: ['fitness', 'motivation', 'workout'],
+        ),
+        SocialPost(
+          id: 'post_5',
+          userId: 'user_6',
+          username: 'david_tech',
+          userAvatar: '💻',
+          userDisplayName: 'David Kim',
+          content: 'Just finished coding this amazing feature! The new AI integration is mind-blowing 🤖 #coding #ai #tech',
+          type: PostType.video,
+          mediaUrls: ['https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4'],
+          createdAt: now.subtract(const Duration(minutes: 45)),
+          updatedAt: now.subtract(const Duration(minutes: 45)),
+          likesCount: 289,
+          commentsCount: 56,
+          sharesCount: 23,
+          viewsCount: 2150,
+          likedBy: ['user_1', 'user_2'],
+          tags: ['coding', 'ai', 'tech'],
+        ),
+        SocialPost(
+          id: 'post_6',
+          userId: 'user_7',
+          username: 'lisa_art',
+          userAvatar: '🎨',
+          userDisplayName: 'Lisa Anderson',
+          content: 'New artwork completed! This piece took me 3 days but totally worth it ✨ #art #painting #creative',
+          type: PostType.image,
+          mediaUrls: ['https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?w=800'],
+          createdAt: now.subtract(const Duration(hours: 3)),
+          updatedAt: now.subtract(const Duration(hours: 3)),
+          likesCount: 412,
+          commentsCount: 67,
+          sharesCount: 45,
+          viewsCount: 3420,
+          likedBy: ['user_1'],
+          tags: ['art', 'painting', 'creative'],
+        ),
+        SocialPost(
+          id: 'post_7',
+          userId: 'user_8',
+          username: 'john_music',
+          userAvatar: '🎵',
+          userDisplayName: 'John Martinez',
+          content: 'New song dropping tonight! Been working on this for months 🎵 Can\'t wait for you all to hear it! #music #newrelease #indie',
+          type: PostType.text,
+          createdAt: now.subtract(const Duration(minutes: 30)),
+          updatedAt: now.subtract(const Duration(minutes: 30)),
+          likesCount: 523,
+          commentsCount: 89,
+          sharesCount: 67,
+          viewsCount: 4560,
+          likedBy: [],
+          tags: ['music', 'newrelease', 'indie'],
+        ),
+        SocialPost(
+          id: 'post_8',
+          userId: 'user_9',
+          username: 'maria_food',
+          userAvatar: '🍰',
+          userDisplayName: 'Maria Garcia',
+          content: 'Baked this amazing chocolate cake today! Recipe video coming soon 🍰 #baking #cake #dessert',
+          type: PostType.image,
+          mediaUrls: ['https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=800'],
+          createdAt: now.subtract(const Duration(hours: 2)),
+          updatedAt: now.subtract(const Duration(hours: 2)),
+          likesCount: 234,
+          commentsCount: 45,
+          sharesCount: 18,
+          viewsCount: 1890,
+          likedBy: [],
+          tags: ['baking', 'cake', 'dessert'],
         ),
       ];
 
@@ -534,7 +665,9 @@ class SocialFeedProvider extends ChangeNotifier {
           ),
         ],
       };
-    }
+      
+      // Save sample data
+      _savePosts();
   }
 
   // Set current user (for demo purposes)

@@ -23,6 +23,7 @@ class AuthProvider with ChangeNotifier {
         address: 'Admin Address',
         role: UserRole.admin,
         createdAt: DateTime.now(),
+        karmaId: 'karma10000001',
       );
       _isLoggedIn = true;
       notifyListeners();
@@ -36,6 +37,7 @@ class AuthProvider with ChangeNotifier {
         address: 'Customer Address',
         role: UserRole.customer,
         createdAt: DateTime.now(),
+        karmaId: 'karma19812938',
       );
       _isLoggedIn = true;
       notifyListeners();
@@ -49,14 +51,16 @@ class AuthProvider with ChangeNotifier {
     // Simulate API call
     await Future.delayed(const Duration(seconds: 1));
     
+    final userId = DateTime.now().millisecondsSinceEpoch.toString();
     _currentUser = User(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      id: userId,
       name: name,
       email: email,
       phone: phone,
       address: '',  // Empty address, user can add it later from profile
       role: UserRole.customer,
       createdAt: DateTime.now(),
+      karmaId: 'karma$userId',
     );
     _isLoggedIn = true;
     notifyListeners();

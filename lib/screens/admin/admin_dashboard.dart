@@ -266,6 +266,14 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 ),
                 const SizedBox(height: 12),
                 _buildManagementTile(
+                  'User Management',
+                  'Manage users, ban users, delete posts by Karma ID',
+                  Icons.people,
+                  Colors.teal,
+                  () => Navigator.pushNamed(context, '/admin-user-management'),
+                ),
+                const SizedBox(height: 12),
+                _buildManagementTile(
                   'Flash Sales',
                   'Create and manage flash sales with countdown timers',
                   Icons.flash_on,

@@ -25,6 +25,7 @@ import 'providers/app_analytics_provider.dart';
 import 'providers/simple_ai_provider.dart';
 import 'providers/feature_settings_provider.dart';
 import 'providers/product_section_provider.dart';
+import 'providers/user_management_provider.dart';
 import 'l10n/app_localizations.dart';
 import 'screens/customer/login_screen.dart';
 import 'screens/customer/home_screen.dart';
@@ -43,6 +44,7 @@ import 'screens/social/social_feed_screen.dart';
 import 'screens/social/create_post_screen.dart';
 import 'screens/admin/admin_prediction_dashboard.dart';
 import 'screens/customer/addresses_screen.dart';
+import 'screens/admin/admin_user_management_screen.dart';
 
 void main() {
   runApp(const KarmaShopApp());
@@ -79,6 +81,7 @@ class KarmaShopApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => SimpleAIProvider()),
         ChangeNotifierProvider(create: (_) => FeatureSettingsProvider()),
         ChangeNotifierProvider(create: (_) => ProductSectionProvider()),
+        ChangeNotifierProvider(create: (_) => UserManagementProvider()),
       ],
       child: Consumer3<AuthProvider, ThemeProvider, LanguageProvider>(
         builder: (context, authProvider, themeProvider, languageProvider, child) {
@@ -138,6 +141,7 @@ class KarmaShopApp extends StatelessWidget {
               '/create-post': (context) => const CreatePostScreen(),
               '/admin-predictions': (context) => const AdminPredictionDashboard(),
               '/addresses': (context) => const AddressesScreen(),
+              '/admin-user-management': (context) => const AdminUserManagementScreen(),
             },
           );
         },

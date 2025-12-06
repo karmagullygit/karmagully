@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../l10n/app_localizations.dart';
 import '../../constants/app_colors.dart';
@@ -7,6 +8,7 @@ import '../../providers/theme_provider.dart';
 import '../../providers/order_provider.dart';
 import '../../providers/wishlist_provider.dart';
 import '../../providers/language_provider.dart';
+import '../../providers/review_provider.dart';
 import '../../utils/navigation_helper.dart';
 import '../customer/language_selection_screen.dart';
 import '../customer/customer_support_screen.dart';
@@ -135,6 +137,45 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                     ),
                     const SizedBox(height: 4),
+                    // Karma ID Display
+                    GestureDetector(
+                      onTap: () {
+                        Clipboard.setData(ClipboardData(text: auth.currentUser?.karmaId ?? ''));
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Karma ID copied: ${auth.currentUser?.karmaId}'),
+                            backgroundColor: AppColors.primary,
+                            duration: const Duration(seconds: 2),
+                          ),
+                        );
+                      },
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.fingerprint,
+                            size: 14,
+                            color: AppColors.primary,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            auth.currentUser?.karmaId ?? '',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: AppColors.primary,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Icon(
+                            Icons.copy,
+                            size: 10,
+                            color: AppColors.getTextSecondaryColor(isDarkMode),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 4),
                     Text(
                       'Premium Member',
                       style: TextStyle(
@@ -186,8 +227,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildProfileStats(bool isDarkMode) {
-    return Consumer2<OrderProvider, WishlistProvider>(
-      builder: (context, orderProvider, wishlistProvider, child) {
+    return Consumer3<OrderProvider, WishlistProvider, ReviewProvider>(
+      builder: (context, orderProvider, wishlistProvider, reviewProvider, child) {
+        final userReviews = reviewProvider.getUserReviews('user_1');
         return Row(
           children: [
             Expanded(
@@ -196,6 +238,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 orderProvider.totalOrders.toString(),
                 Icons.shopping_bag_outlined,
                 isDarkMode,
+                onTap: null,
               ),
             ),
             const SizedBox(width: 12),
@@ -205,15 +248,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 wishlistProvider.itemCount.toString(),
                 Icons.favorite_outline,
                 isDarkMode,
+                onTap: null,
               ),
             ),
             const SizedBox(width: 12),
             Expanded(
               child: _buildStatCard(
                 'Reviews',
-                '12',
+                userReviews.length.toString(),
                 Icons.star_outline,
                 isDarkMode,
+                onTap: () => _showUserReviewsDialog(context, userReviews, isDarkMode),
               ),
             ),
           ],
@@ -222,8 +267,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildStatCard(String title, String value, IconData icon, bool isDarkMode) {
-    return Container(
+  Widget _buildStatCard(String title, String value, IconData icon, bool isDarkMode, {VoidCallback? onTap}) {
+    final content = Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.getCardBackgroundColor(isDarkMode),
@@ -257,6 +302,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ],
       ),
     );
+    
+    if (onTap != null) {
+      return InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: content,
+      );
+    }
+    return content;
   }
 
   Widget _buildProfileActions(bool isDarkMode) {
@@ -616,5 +670,144 @@ class _ProfileScreenState extends State<ProfileScreen> {
         );
       },
     );
+  }
+
+  void _showUserReviewsDialog(BuildContext context, List<dynamic> reviews, bool isDarkMode) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.getCardBackgroundColor(isDarkMode),
+        title: Text(
+          'My Reviews',
+          style: TextStyle(
+            color: AppColors.getTextColor(isDarkMode),
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: reviews.isEmpty
+              ? Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.rate_review_outlined,
+                        size: 64,
+                        color: AppColors.getTextSecondaryColor(isDarkMode).withOpacity(0.5),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'No reviews yet',
+                        style: TextStyle(
+                          color: AppColors.getTextSecondaryColor(isDarkMode),
+                          fontSize: 16,
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              : ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: reviews.length,
+                  itemBuilder: (context, index) {
+                    final review = reviews[index];
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: AppColors.getBackgroundColor(isDarkMode),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: AppColors.getBorderColor(isDarkMode)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              ...List.generate(5, (starIndex) {
+                                return Icon(
+                                  starIndex < review.rating ? Icons.star : Icons.star_border,
+                                  size: 16,
+                                  color: Colors.amber,
+                                );
+                              }),
+                              const Spacer(),
+                              Text(
+                                _formatDate(review.createdAt),
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: AppColors.getTextSecondaryColor(isDarkMode),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            review.comment,
+                            style: TextStyle(
+                              color: AppColors.getTextColor(isDarkMode),
+                              fontSize: 14,
+                            ),
+                          ),
+                          if (review.isVerifiedPurchase) ...[
+                            const SizedBox(height: 8),
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.verified,
+                                  size: 14,
+                                  color: AppColors.success,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'Verified Purchase',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: AppColors.success,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ],
+                      ),
+                    );
+                  },
+                ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(
+              'Close',
+              style: TextStyle(color: AppColors.primary),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _formatDate(DateTime date) {
+    final now = DateTime.now();
+    final difference = now.difference(date);
+
+    if (difference.inDays == 0) {
+      return 'Today';
+    } else if (difference.inDays == 1) {
+      return 'Yesterday';
+    } else if (difference.inDays < 7) {
+      return '${difference.inDays} days ago';
+    } else if (difference.inDays < 30) {
+      final weeks = (difference.inDays / 7).floor();
+      return '$weeks ${weeks == 1 ? 'week' : 'weeks'} ago';
+    } else if (difference.inDays < 365) {
+      final months = (difference.inDays / 30).floor();
+      return '$months ${months == 1 ? 'month' : 'months'} ago';
+    } else {
+      final years = (difference.inDays / 365).floor();
+      return '$years ${years == 1 ? 'year' : 'years'} ago';
+    }
   }
 }

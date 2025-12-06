@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'dart:io';
 import 'package:video_player/video_player.dart';
 import 'package:visibility_detector/visibility_detector.dart';
+import 'package:share_plus/share_plus.dart';
 import '../../providers/social_feed_provider.dart';
+import '../../providers/user_management_provider.dart';
+import '../../providers/auth_provider.dart';
 import '../../models/social_post.dart';
 import 'create_post_screen.dart';
 import 'comments_screen.dart';
@@ -167,13 +171,29 @@ class SocialFeedScreen extends StatelessWidget {
   }
 
   Widget _buildWhatsOnYourMind(BuildContext context) {
-    return GestureDetector(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => const CreatePostScreen()),
-        );
-      },
+    return Consumer2<AuthProvider, UserManagementProvider>(
+      builder: (context, authProvider, userManagement, child) {
+        final currentUser = authProvider.currentUser;
+        final user = currentUser != null ? userManagement.getUserByKarmaId(currentUser.karmaId) : null;
+        final isBanned = user?.isBanned ?? false;
+
+        return GestureDetector(
+          onTap: () {
+            if (isBanned) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('You are banned from posting. Reason: ${user?.banReason ?? "Violation of community guidelines"}'),
+                  backgroundColor: Colors.red,
+                  duration: const Duration(seconds: 3),
+                ),
+              );
+              return;
+            }
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const CreatePostScreen()),
+            );
+          },
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         padding: const EdgeInsets.all(16),
@@ -210,6 +230,8 @@ class SocialFeedScreen extends StatelessWidget {
           ],
         ),
       ),
+    );
+      },
     );
   }
 
@@ -388,114 +410,288 @@ class SocialFeedScreen extends StatelessWidget {
   }
 
   Widget _buildTrending() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'Trending',
-                style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              TextButton(
-                onPressed: () {},
-                child: const Text(
-                  'More',
-                  style: TextStyle(color: Color(0xFF6B73FF), fontSize: 14),
-                ),
-              ),
-            ],
-          ),
-        ),
-        Container(
-          margin: const EdgeInsets.symmetric(horizontal: 20),
-          height: 240,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
-            image: const DecorationImage(
-              image: NetworkImage('https://images.unsplash.com/photo-1682687220742-aba13b6e50ba?w=800'),
-              fit: BoxFit.cover,
-            ),
-          ),
-          child: Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(20),
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Colors.transparent,
-                  Colors.black.withOpacity(0.8),
+    return Consumer<SocialFeedProvider>(
+      builder: (context, provider, child) {
+        final trendingPosts = provider.getTrendingPosts(minViews: 0);
+        
+        debugPrint('🔥 Trending posts: ${trendingPosts.length}');
+        debugPrint('📊 Total posts in feed: ${provider.posts.length}');
+        
+        if (trendingPosts.isEmpty) {
+          return const SizedBox.shrink();
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      const Text(
+                        'Trending',
+                        style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.red,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.local_fire_department, color: Colors.white, size: 14),
+                            const SizedBox(width: 4),
+                            Text(
+                              '${trendingPosts.length}',
+                              style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  TextButton(
+                    onPressed: () => _showAllTrendingPosts(context, trendingPosts),
+                    child: const Text(
+                      'More',
+                      style: TextStyle(color: Color(0xFF6B73FF), fontSize: 14),
+                    ),
+                  ),
                 ],
               ),
             ),
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.end,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Align(
-                  alignment: Alignment.topRight,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            SizedBox(
+              height: 280,
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                itemCount: trendingPosts.length,
+                itemBuilder: (context, index) {
+                  final post = trendingPosts[index];
+                  return _buildTrendingCard(context, post, index);
+                },
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildTrendingCard(BuildContext context, SocialPost post, int index) {
+    final hasMedia = post.mediaUrls.isNotEmpty;
+    final imageUrl = hasMedia ? post.mediaUrls.first : 'https://images.unsplash.com/photo-1682687220742-aba13b6e50ba?w=800';
+    
+    return GestureDetector(
+      onTap: () {
+        // Navigate to reels viewer for all posts
+        final trendingPosts = context.read<SocialFeedProvider>().getTrendingPosts(minViews: 0);
+        final reelsData = trendingPosts.map((p) {
+          // Use default image if post has no media
+          final postImage = p.mediaUrls.isNotEmpty 
+            ? p.mediaUrls.first 
+            : 'https://images.unsplash.com/photo-1682687220742-aba13b6e50ba?w=800';
+            
+          return {
+            'name': p.userDisplayName ?? p.username,
+            'image': postImage,
+            'type': p.hasVideo ? 'video' : 'image',
+            'videoUrl': p.hasVideo && p.mediaUrls.isNotEmpty ? p.mediaUrls.first : null,
+            'time': p.timeAgo,
+            'likes': p.likesCount >= 1000 
+              ? '${(p.likesCount / 1000).toStringAsFixed(1)}K' 
+              : '${p.likesCount}',
+            'comments': '${p.commentsCount}',
+            'shares': '${p.sharesCount}',
+            'caption': p.content,
+          };
+        }).toList();
+        
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ReelsViewerScreen(
+              stories: reelsData,
+              initialIndex: index,
+            ),
+          ),
+        );
+      },
+      child: Container(
+        width: 200,
+        margin: const EdgeInsets.only(right: 12),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(20),
+          image: DecorationImage(
+            image: NetworkImage(imageUrl),
+            fit: BoxFit.cover,
+          ),
+        ),
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Colors.transparent,
+                Colors.black.withOpacity(0.8),
+              ],
+            ),
+          ),
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: Colors.yellow,
-                      borderRadius: BorderRadius.circular(20),
+                      color: Colors.red.withOpacity(0.9),
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Row(
+                    child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.thumb_up, color: Colors.black, size: 16),
-                        SizedBox(width: 4),
+                        const Icon(Icons.trending_up, color: Colors.white, size: 12),
+                        const SizedBox(width: 4),
                         Text(
-                          'Like',
-                          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 12),
+                          '#${index + 1}',
+                          style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
                         ),
                       ],
                     ),
                   ),
-                ),
-                const Spacer(),
-                Row(
-                  children: [
-                    const CircleAvatar(
-                      radius: 16,
-                      backgroundImage: NetworkImage('https://randomuser.me/api/portraits/women/4.jpg'),
+                  if (post.hasVideo)
+                    Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.6),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.play_arrow, color: Colors.white, size: 16),
                     ),
-                    const SizedBox(width: 8),
-                    const Text(
-                      'Annette',
-                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                ],
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 12,
+                        backgroundColor: const Color(0xFF6B73FF),
+                        child: Text(
+                          (post.userDisplayName ?? post.username)[0].toUpperCase(),
+                          style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          post.userDisplayName ?? post.username,
+                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    post.content,
+                    style: const TextStyle(color: Colors.white, fontSize: 11),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      Icon(Icons.remove_red_eye, color: Colors.white.withOpacity(0.7), size: 14),
+                      const SizedBox(width: 4),
+                      Text(
+                        '${post.viewsCount}',
+                        style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 11),
+                      ),
+                      const SizedBox(width: 12),
+                      Icon(Icons.favorite, color: Colors.red.withOpacity(0.7), size: 14),
+                      const SizedBox(width: 4),
+                      Text(
+                        '${post.likesCount}',
+                        style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 11),
+                      ),
+                    ],
+                  ),
+                  if (post.tags.isNotEmpty) ...[
+                    const SizedBox(height: 6),
+                    Wrap(
+                      spacing: 4,
+                      children: post.tags.take(2).map((tag) => _buildHashtag(tag)).toList(),
                     ),
                   ],
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Hello My Friends, Today I Did Studying For The First Time It Was A Great Experience',
-                  style: TextStyle(color: Colors.white, fontSize: 13),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    _buildHashtag('travel'),
-                    const SizedBox(width: 8),
-                    _buildHashtag('smile'),
-                    const SizedBox(width: 8),
-                    _buildHashtag('studying'),
-                    const SizedBox(width: 8),
-                    _buildHashtag('sickness'),
-                  ],
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showAllTrendingPosts(BuildContext context, List<SocialPost> trendingPosts) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => Scaffold(
+          backgroundColor: const Color(0xFF181A20),
+          appBar: AppBar(
+            title: Row(
+              children: [
+                const Text('Trending Now', style: TextStyle(color: Colors.white)),
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.red,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.local_fire_department, color: Colors.white, size: 14),
+                    ],
+                  ),
                 ),
               ],
             ),
+            backgroundColor: const Color(0xFF181A20),
+            elevation: 0,
+            iconTheme: const IconThemeData(color: Colors.white),
+          ),
+          body: GridView.builder(
+            padding: const EdgeInsets.all(16),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              childAspectRatio: 0.7,
+              crossAxisSpacing: 12,
+              mainAxisSpacing: 12,
+            ),
+            itemCount: trendingPosts.length,
+            itemBuilder: (context, index) {
+              return _buildTrendingCard(context, trendingPosts[index], index);
+            },
           ),
         ),
-      ],
+      ),
     );
   }
 
@@ -558,6 +754,241 @@ class SocialFeedScreen extends StatelessWidget {
     }
   }
 
+  void _handleMenuAction(BuildContext context, String action, SocialPost post, SocialFeedProvider provider) {
+    switch (action) {
+      case 'edit':
+        _showEditDialog(context, post, provider);
+        break;
+      case 'delete':
+        _showDeleteConfirmation(context, post, provider);
+        break;
+      case 'share':
+        _sharePost(post);
+        break;
+      case 'copylink':
+        _copyPostLink(context, post);
+        break;
+      case 'bookmark':
+        _savePost(context, post);
+        break;
+      case 'report':
+        _showReportDialog(context, post);
+        break;
+      case 'hide':
+        _hidePost(context, post, provider);
+        break;
+    }
+  }
+
+  void _showEditDialog(BuildContext context, SocialPost post, SocialFeedProvider provider) {
+    final controller = TextEditingController(text: post.content);
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1C1F26),
+        title: const Text('Edit Post', style: TextStyle(color: Colors.white)),
+        content: TextField(
+          controller: controller,
+          maxLines: 5,
+          style: const TextStyle(color: Colors.white),
+          decoration: InputDecoration(
+            hintText: 'What\'s on your mind?',
+            hintStyle: TextStyle(color: Colors.white.withOpacity(0.5)),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.white.withOpacity(0.2)),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.white.withOpacity(0.2)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Color(0xFF6B73FF)),
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Cancel', style: TextStyle(color: Colors.white.withOpacity(0.7))),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              // Update post content (you may need to add updatePost method to provider)
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Post updated successfully'),
+                  backgroundColor: Color(0xFF6B73FF),
+                ),
+              );
+              Navigator.pop(context);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF6B73FF),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showDeleteConfirmation(BuildContext context, SocialPost post, SocialFeedProvider provider) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1C1F26),
+        title: const Text('Delete Post', style: TextStyle(color: Colors.white)),
+        content: const Text(
+          'Are you sure you want to delete this post? This action cannot be undone.',
+          style: TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Cancel', style: TextStyle(color: Colors.white.withOpacity(0.7))),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              await provider.deletePost(post.id);
+              if (context.mounted) {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Post deleted successfully'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _sharePost(SocialPost post) {
+    final shareText = '${post.content}\n\nShared from KarmaShop Community';
+    if (post.hasMedia && post.mediaUrls.isNotEmpty) {
+      Share.share(shareText);
+    } else {
+      Share.share(shareText);
+    }
+  }
+
+  void _copyPostLink(BuildContext context, SocialPost post) {
+    final postLink = 'https://karmashop.com/posts/${post.id}';
+    Clipboard.setData(ClipboardData(text: postLink));
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Post link copied to clipboard'),
+        backgroundColor: Color(0xFF6B73FF),
+        duration: Duration(seconds: 2),
+      ),
+    );
+  }
+
+  void _savePost(BuildContext context, SocialPost post) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Post saved to your bookmarks'),
+        backgroundColor: Color(0xFF6B73FF),
+        duration: Duration(seconds: 2),
+      ),
+    );
+  }
+
+  void _showReportDialog(BuildContext context, SocialPost post) {
+    String? selectedReason;
+    final reasons = [
+      'Spam',
+      'Harassment or bullying',
+      'False information',
+      'Hate speech',
+      'Violence or dangerous content',
+      'Nudity or sexual content',
+      'Scam or fraud',
+      'Other',
+    ];
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          backgroundColor: const Color(0xFF1C1F26),
+          title: const Text('Report Post', style: TextStyle(color: Colors.white)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Why are you reporting this post?',
+                style: TextStyle(color: Colors.white70, fontSize: 14),
+              ),
+              const SizedBox(height: 16),
+              ...reasons.map((reason) => RadioListTile<String>(
+                title: Text(reason, style: const TextStyle(color: Colors.white)),
+                value: reason,
+                groupValue: selectedReason,
+                activeColor: const Color(0xFF6B73FF),
+                onChanged: (value) {
+                  setState(() => selectedReason = value);
+                },
+              )),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text('Cancel', style: TextStyle(color: Colors.white.withOpacity(0.7))),
+            ),
+            ElevatedButton(
+              onPressed: selectedReason != null
+                  ? () {
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Thank you for reporting. We\'ll review this post.'),
+                          backgroundColor: Color(0xFF6B73FF),
+                        ),
+                      );
+                    }
+                  : null,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF6B73FF),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              child: const Text('Submit'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _hidePost(BuildContext context, SocialPost post, SocialFeedProvider provider) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text('Post hidden. You won\'t see posts from this user.'),
+        backgroundColor: const Color(0xFF6B73FF),
+        action: SnackBarAction(
+          label: 'UNDO',
+          textColor: Colors.white,
+          onPressed: () {
+            // Undo hide action
+          },
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -585,9 +1016,17 @@ class SocialFeedScreen extends StatelessWidget {
           if (feedProvider.posts.isEmpty) {
             return const Center(child: Text('No posts yet. Start sharing your moments!', style: TextStyle(color: Colors.white70)));
           }
+          
+          // Get trending posts to exclude from regular feed
+          final trendingPosts = feedProvider.getTrendingPosts(minViews: 0);
+          final trendingIds = trendingPosts.map((p) => p.id).toSet();
+          
+          // Filter out trending posts from regular feed
+          final regularPosts = feedProvider.posts.where((post) => !trendingIds.contains(post.id)).toList();
+          
           return ListView.builder(
             padding: const EdgeInsets.only(bottom: 80),
-            itemCount: feedProvider.posts.length + 3,
+            itemCount: regularPosts.length + 3,
             itemBuilder: (context, index) {
               if (index == 0) {
                 return _buildWhatsOnYourMind(context);
@@ -598,7 +1037,7 @@ class SocialFeedScreen extends StatelessWidget {
               if (index == 2) {
                 return _buildTrending();
               }
-              final post = feedProvider.posts[index - 3];
+              final post = regularPosts[index - 3];
               return Container(
                 margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                 decoration: BoxDecoration(
@@ -639,7 +1078,93 @@ class SocialFeedScreen extends StatelessWidget {
                               ],
                             ),
                           ),
-                          Icon(Icons.more_horiz, color: Colors.white.withOpacity(0.5)),
+                          PopupMenuButton<String>(
+                            icon: Icon(Icons.more_horiz, color: Colors.white.withOpacity(0.5)),
+                            color: const Color(0xFF1C1F26),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              side: BorderSide(color: Colors.white.withOpacity(0.1)),
+                            ),
+                            onSelected: (value) => _handleMenuAction(context, value, post, feedProvider),
+                            itemBuilder: (context) => [
+                              if (post.userId == feedProvider.currentUserId) ...[
+                                PopupMenuItem(
+                                  value: 'edit',
+                                  child: Row(
+                                    children: [
+                                      const Icon(Icons.edit_outlined, color: Color(0xFF6B73FF), size: 20),
+                                      const SizedBox(width: 12),
+                                      Text('Edit Post', style: TextStyle(color: Colors.white.withOpacity(0.9))),
+                                    ],
+                                  ),
+                                ),
+                                PopupMenuItem(
+                                  value: 'delete',
+                                  child: Row(
+                                    children: [
+                                      const Icon(Icons.delete_outline, color: Colors.red, size: 20),
+                                      const SizedBox(width: 12),
+                                      Text('Delete Post', style: TextStyle(color: Colors.white.withOpacity(0.9))),
+                                    ],
+                                  ),
+                                ),
+                                const PopupMenuDivider(),
+                              ],
+                              PopupMenuItem(
+                                value: 'share',
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.share_outlined, color: Color(0xFF6B73FF), size: 20),
+                                    const SizedBox(width: 12),
+                                    Text('Share Post', style: TextStyle(color: Colors.white.withOpacity(0.9))),
+                                  ],
+                                ),
+                              ),
+                              PopupMenuItem(
+                                value: 'copylink',
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.link, color: Color(0xFF6B73FF), size: 20),
+                                    const SizedBox(width: 12),
+                                    Text('Copy Link', style: TextStyle(color: Colors.white.withOpacity(0.9))),
+                                  ],
+                                ),
+                              ),
+                              PopupMenuItem(
+                                value: 'bookmark',
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.bookmark_outline, color: Color(0xFF6B73FF), size: 20),
+                                    const SizedBox(width: 12),
+                                    Text('Save Post', style: TextStyle(color: Colors.white.withOpacity(0.9))),
+                                  ],
+                                ),
+                              ),
+                              if (post.userId != feedProvider.currentUserId) ...[
+                                const PopupMenuDivider(),
+                                PopupMenuItem(
+                                  value: 'report',
+                                  child: Row(
+                                    children: [
+                                      const Icon(Icons.flag_outlined, color: Colors.orange, size: 20),
+                                      const SizedBox(width: 12),
+                                      Text('Report Post', style: TextStyle(color: Colors.white.withOpacity(0.9))),
+                                    ],
+                                  ),
+                                ),
+                                PopupMenuItem(
+                                  value: 'hide',
+                                  child: Row(
+                                    children: [
+                                      const Icon(Icons.visibility_off_outlined, color: Colors.grey, size: 20),
+                                      const SizedBox(width: 12),
+                                      Text('Hide Post', style: TextStyle(color: Colors.white.withOpacity(0.9))),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
                         ],
                       ),
                     ),

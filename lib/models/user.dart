@@ -8,6 +8,10 @@ class User {
   final UserRole role;
   final DateTime createdAt;
   final bool isActive;
+  final String karmaId; // Unique identifier like karma19812938
+  final bool isBanned;
+  final String? banReason;
+  final DateTime? bannedAt;
 
   User({
     required this.id,
@@ -19,6 +23,10 @@ class User {
     required this.role,
     required this.createdAt,
     this.isActive = true,
+    required this.karmaId,
+    this.isBanned = false,
+    this.banReason,
+    this.bannedAt,
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
@@ -35,6 +43,10 @@ class User {
       ),
       createdAt: DateTime.parse(json['createdAt']),
       isActive: json['isActive'] ?? true,
+      karmaId: json['karmaId'] ?? 'karma${json['id']}',
+      isBanned: json['isBanned'] ?? false,
+      banReason: json['banReason'],
+      bannedAt: json['bannedAt'] != null ? DateTime.parse(json['bannedAt']) : null,
     );
   }
 
@@ -49,6 +61,10 @@ class User {
       'role': role.toString().split('.').last,
       'createdAt': createdAt.toIso8601String(),
       'isActive': isActive,
+      'karmaId': karmaId,
+      'isBanned': isBanned,
+      'banReason': banReason,
+      'bannedAt': bannedAt?.toIso8601String(),
     };
   }
 
@@ -62,6 +78,10 @@ class User {
     UserRole? role,
     DateTime? createdAt,
     bool? isActive,
+    String? karmaId,
+    bool? isBanned,
+    String? banReason,
+    DateTime? bannedAt,
   }) {
     return User(
       id: id ?? this.id,
@@ -73,6 +93,10 @@ class User {
       role: role ?? this.role,
       createdAt: createdAt ?? this.createdAt,
       isActive: isActive ?? this.isActive,
+      karmaId: karmaId ?? this.karmaId,
+      isBanned: isBanned ?? this.isBanned,
+      banReason: banReason ?? this.banReason,
+      bannedAt: bannedAt ?? this.bannedAt,
     );
   }
 }
