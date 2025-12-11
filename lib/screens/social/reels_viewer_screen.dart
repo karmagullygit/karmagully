@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:video_player/video_player.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:provider/provider.dart';
+import '../../providers/report_provider.dart';
+import '../../providers/auth_provider.dart';
+import '../../models/post_report.dart';
 
 class ReelsViewerScreen extends StatefulWidget {
   final List<Map<String, dynamic>> stories;
@@ -329,15 +333,30 @@ class _ReelsViewerScreenState extends State<ReelsViewerScreen> {
 
   void _showReportDialog(BuildContext context) {
     String? selectedReason;
-    final reasons = [
-      'Spam',
-      'Harassment or bullying',
-      'False information',
-      'Hate speech',
-      'Violence or dangerous content',
-      'Nudity or sexual content',
-      'Scam or fraud',
-      'Other',
+    final descriptionController = TextEditingController();
+    final authProvider = context.read<AuthProvider>();
+    final currentStory = widget.stories[_currentIndex];
+    
+    final currentUser = authProvider.currentUser;
+    if (currentUser == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('You must be logged in to report content'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+    
+    final reasonOptions = [
+      ReportReason.spam,
+      ReportReason.harassment,
+      ReportReason.hateSpeech,
+      ReportReason.violence,
+      ReportReason.nudity,
+      ReportReason.misinformation,
+      ReportReason.scam,
+      ReportReason.other,
     ];
 
     showDialog(
@@ -345,53 +364,171 @@ class _ReelsViewerScreenState extends State<ReelsViewerScreen> {
       builder: (context) => StatefulBuilder(
         builder: (context, setState) => AlertDialog(
           backgroundColor: const Color(0xFF1C1F26),
-          title: const Text('Report Content', style: TextStyle(color: Colors.white)),
+          title: Row(
+            children: [
+              const Icon(Icons.flag_outlined, color: Colors.orange),
+              const SizedBox(width: 12),
+              const Text('Report Content', style: TextStyle(color: Colors.white)),
+            ],
+          ),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  'Why are you reporting this?',
-                  style: TextStyle(color: Colors.white70, fontSize: 14),
+                  'Why are you reporting this reel?',
+                  style: TextStyle(color: Colors.white70, fontSize: 14, fontWeight: FontWeight.w600),
                 ),
                 const SizedBox(height: 16),
-                ...reasons.map((reason) => RadioListTile<String>(
-                  title: Text(reason, style: const TextStyle(color: Colors.white)),
-                  value: reason,
+                ...reasonOptions.map((reason) => RadioListTile<String>(
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(
+                    reason.displayName,
+                    style: const TextStyle(color: Colors.white, fontSize: 14),
+                  ),
+                  value: reason.value,
                   groupValue: selectedReason,
                   activeColor: const Color(0xFF6B73FF),
-                  contentPadding: EdgeInsets.zero,
-                  dense: true,
                   onChanged: (value) {
                     setState(() => selectedReason = value);
                   },
                 )),
+                const SizedBox(height: 16),
+                const Text(
+                  'Additional details (optional)',
+                  style: TextStyle(color: Colors.white70, fontSize: 14, fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: descriptionController,
+                  maxLines: 3,
+                  maxLength: 200,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: InputDecoration(
+                    hintText: 'Provide more context...',
+                    hintStyle: TextStyle(color: Colors.white.withOpacity(0.3)),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: Colors.white.withOpacity(0.2)),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: Colors.white.withOpacity(0.2)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Color(0xFF6B73FF)),
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context),
+              onPressed: () {
+                descriptionController.dispose();
+                Navigator.pop(context);
+              },
               child: Text('Cancel', style: TextStyle(color: Colors.white.withOpacity(0.7))),
             ),
             ElevatedButton(
               onPressed: selectedReason != null
-                  ? () {
-                      Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Thank you for reporting. We\'ll review this content.'),
-                          backgroundColor: Color(0xFF6B73FF),
-                        ),
-                      );
+                  ? () async {
+                      debugPrint('');
+                      debugPrint('🎬 REEL REPORT SUBMISSION STARTED');
+                      debugPrint('=====================================');
+                      
+                      // Get reel information
+                      final reelId = currentStory['postId'] ?? 'reel_${currentStory['name']}_${DateTime.now().millisecondsSinceEpoch}';
+                      final reelOwnerId = currentStory['userId'] ?? 'unknown_user';
+                      final reelOwnerUsername = currentStory['username'] ?? currentStory['name'] ?? 'Unknown';
+                      final reelOwnerKarmaId = currentStory['karmaId'] ?? 'KG-${reelOwnerUsername.toUpperCase()}';
+                      final reelContent = currentStory['caption'] ?? '[Video/Image Content]';
+                      final reelMediaUrls = <String>[
+                        if (currentStory['type'] == 'video' && currentStory['videoUrl'] != null)
+                          currentStory['videoUrl'].toString()
+                        else if (currentStory['image'] != null)
+                          currentStory['image'].toString()
+                      ];
+                      
+                      debugPrint('📹 Reel ID: $reelId');
+                      debugPrint('👥 Owner: $reelOwnerUsername ($reelOwnerKarmaId)');
+                      debugPrint('👤 Reporter: ${currentUser.name} (${currentUser.karmaId})');
+                      debugPrint('📝 Reason: $selectedReason');
+                      debugPrint('=====================================');
+                      
+                      try {
+                        debugPrint('🔄 Calling ReportProvider.reportPost...');
+                        final reportProvider = context.read<ReportProvider>();
+                        final success = await reportProvider.reportPost(
+                          postId: reelId,
+                          reportedBy: currentUser.id,
+                          reportedByUsername: currentUser.name,
+                          reportedByKarmaId: currentUser.karmaId,
+                          postOwnerId: reelOwnerId,
+                          postOwnerUsername: reelOwnerUsername,
+                          postOwnerKarmaId: reelOwnerKarmaId,
+                          reason: selectedReason!,
+                          description: descriptionController.text.trim().isEmpty 
+                              ? null 
+                              : descriptionController.text.trim(),
+                          postContent: reelContent,
+                          postMediaUrls: reelMediaUrls,
+                        );
+                        
+                        debugPrint('');
+                        debugPrint(success ? '✅ SUCCESS!' : '❌ FAILED!');
+                        debugPrint('📊 Unresolved reports now: ${reportProvider.unresolvedReports.length}');
+                        debugPrint('');
+                        
+                        descriptionController.dispose();
+                        if (context.mounted) {
+                          Navigator.pop(context);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Row(
+                                children: [
+                                  Icon(success ? Icons.check_circle : Icons.error, color: Colors.white),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Text(
+                                      success 
+                                        ? 'Report submitted! Check Admin → Reports Management' 
+                                        : 'Failed to submit report. Please try again.',
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              backgroundColor: success ? Colors.green : Colors.red,
+                              duration: const Duration(seconds: 4),
+                            ),
+                          );
+                        }
+                      } catch (e, stackTrace) {
+                        debugPrint('❌ EXCEPTION: $e');
+                        debugPrint('Stack: $stackTrace');
+                        descriptionController.dispose();
+                        if (context.mounted) {
+                          Navigator.pop(context);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Error: $e'),
+                              backgroundColor: Colors.red,
+                              duration: const Duration(seconds: 5),
+                            ),
+                          );
+                        }
+                      }
                     }
                   : null,
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF6B73FF),
+                disabledBackgroundColor: Colors.grey,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               ),
-              child: const Text('Submit'),
+              child: const Text('Submit Report'),
             ),
           ],
         ),

@@ -10,6 +10,7 @@ import '../../providers/coupon_provider.dart';
 import '../../providers/address_provider.dart';
 import '../../models/coupon.dart';
 import '../../widgets/payment_method_selector.dart';
+import '../../widgets/order_notification_dialog.dart';
 import '../../services/payment_service.dart';
 import 'order_success_screen.dart';
 
@@ -824,15 +825,23 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           _showSnackBar(paymentResult.message, Colors.green);
           
           // Create order with successful payment info
-          orderId = orderProvider.placeOrder(
+          orderId = await orderProvider.placeOrder(
             user: authProvider.currentUser!,
             cartItems: cartProvider.items,
             shippingAddress: address.fullAddress,
             paymentInfo: paymentInfo,
           );
 
+          // Get the placed order
+          final placedOrder = orderProvider.getOrderById(orderId);
+
           // Clear cart after successful order
           cartProvider.clear();
+
+          // Show WhatsApp notification dialog
+          if (placedOrder != null && mounted) {
+            OrderNotificationDialog.show(context, placedOrder, isAdmin: false);
+          }
 
           // Navigate to order success screen with loading transition
           Navigator.of(context).pushReplacement(

@@ -8,7 +8,9 @@ import 'package:share_plus/share_plus.dart';
 import '../../providers/social_feed_provider.dart';
 import '../../providers/user_management_provider.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/report_provider.dart';
 import '../../models/social_post.dart';
+import '../../models/post_report.dart';
 import 'create_post_screen.dart';
 import 'comments_screen.dart';
 import 'reels_viewer_screen.dart';
@@ -244,6 +246,10 @@ class SocialFeedScreen extends StatelessWidget {
         final sampleStories = [
           {
             'name': 'Savannah',
+            'userId': 'sample_user_savannah',
+            'username': 'savannah',
+            'karmaId': 'KG-SAVANNAH',
+            'postId': 'sample_story_savannah_1',
             'image': 'https://randomuser.me/api/portraits/women/1.jpg',
             'type': 'image',
             'time': '2h ago',
@@ -254,6 +260,10 @@ class SocialFeedScreen extends StatelessWidget {
           },
           {
             'name': 'Cooper',
+            'userId': 'sample_user_cooper',
+            'username': 'cooper',
+            'karmaId': 'KG-COOPER',
+            'postId': 'sample_story_cooper_1',
             'image': 'https://randomuser.me/api/portraits/men/2.jpg',
             'type': 'video',
             'videoUrl': 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
@@ -265,6 +275,10 @@ class SocialFeedScreen extends StatelessWidget {
           },
           {
             'name': 'Howard',
+            'userId': 'sample_user_howard',
+            'username': 'howard',
+            'karmaId': 'KG-HOWARD',
+            'postId': 'sample_story_howard_1',
             'image': 'https://randomuser.me/api/portraits/men/3.jpg',
             'type': 'image',
             'time': '1h ago',
@@ -500,6 +514,9 @@ class SocialFeedScreen extends StatelessWidget {
             
           return {
             'name': p.userDisplayName ?? p.username,
+            'userId': p.userId,
+            'username': p.username,
+            'postId': p.id,
             'image': postImage,
             'type': p.hasVideo ? 'video' : 'image',
             'videoUrl': p.hasVideo && p.mediaUrls.isNotEmpty ? p.mediaUrls.first : null,
@@ -907,15 +924,31 @@ class SocialFeedScreen extends StatelessWidget {
 
   void _showReportDialog(BuildContext context, SocialPost post) {
     String? selectedReason;
-    final reasons = [
-      'Spam',
-      'Harassment or bullying',
-      'False information',
-      'Hate speech',
-      'Violence or dangerous content',
-      'Nudity or sexual content',
-      'Scam or fraud',
-      'Other',
+    final descriptionController = TextEditingController();
+    final authProvider = context.read<AuthProvider>();
+    final userManagement = context.read<UserManagementProvider>();
+    final reportProvider = context.read<ReportProvider>();
+    
+    final currentUser = authProvider.currentUser;
+    if (currentUser == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('You must be logged in to report posts'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    final reasonOptions = [
+      ReportReason.spam,
+      ReportReason.harassment,
+      ReportReason.hateSpeech,
+      ReportReason.violence,
+      ReportReason.nudity,
+      ReportReason.misinformation,
+      ReportReason.scam,
+      ReportReason.other,
     ];
 
     showDialog(
@@ -923,49 +956,125 @@ class SocialFeedScreen extends StatelessWidget {
       builder: (context) => StatefulBuilder(
         builder: (context, setState) => AlertDialog(
           backgroundColor: const Color(0xFF1C1F26),
-          title: const Text('Report Post', style: TextStyle(color: Colors.white)),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
+          title: Row(
             children: [
-              const Text(
-                'Why are you reporting this post?',
-                style: TextStyle(color: Colors.white70, fontSize: 14),
-              ),
-              const SizedBox(height: 16),
-              ...reasons.map((reason) => RadioListTile<String>(
-                title: Text(reason, style: const TextStyle(color: Colors.white)),
-                value: reason,
-                groupValue: selectedReason,
-                activeColor: const Color(0xFF6B73FF),
-                onChanged: (value) {
-                  setState(() => selectedReason = value);
-                },
-              )),
+              const Icon(Icons.flag_outlined, color: Colors.orange),
+              const SizedBox(width: 12),
+              const Text('Report Post', style: TextStyle(color: Colors.white)),
             ],
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Why are you reporting this post?',
+                  style: TextStyle(color: Colors.white70, fontSize: 14, fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 16),
+                ...reasonOptions.map((reason) => RadioListTile<String>(
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(
+                    reason.displayName,
+                    style: const TextStyle(color: Colors.white, fontSize: 14),
+                  ),
+                  value: reason.value,
+                  groupValue: selectedReason,
+                  activeColor: const Color(0xFF6B73FF),
+                  onChanged: (value) {
+                    setState(() => selectedReason = value);
+                  },
+                )),
+                const SizedBox(height: 16),
+                const Text(
+                  'Additional details (optional)',
+                  style: TextStyle(color: Colors.white70, fontSize: 14, fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: descriptionController,
+                  maxLines: 3,
+                  maxLength: 200,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: InputDecoration(
+                    hintText: 'Provide more context...',
+                    hintStyle: TextStyle(color: Colors.white.withOpacity(0.3)),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: Colors.white.withOpacity(0.2)),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: Colors.white.withOpacity(0.2)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Color(0xFF6B73FF)),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context),
+              onPressed: () {
+                descriptionController.dispose();
+                Navigator.pop(context);
+              },
               child: Text('Cancel', style: TextStyle(color: Colors.white.withOpacity(0.7))),
             ),
             ElevatedButton(
               onPressed: selectedReason != null
-                  ? () {
-                      Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Thank you for reporting. We\'ll review this post.'),
-                          backgroundColor: Color(0xFF6B73FF),
-                        ),
+                  ? () async {
+                      final success = await reportProvider.reportPost(
+                        postId: post.id,
+                        reportedBy: currentUser.id,
+                        reportedByUsername: currentUser.name,
+                        reportedByKarmaId: currentUser.karmaId,
+                        postOwnerId: post.userId,
+                        postOwnerUsername: post.userDisplayName ?? post.username,
+                        postOwnerKarmaId: post.userId, // Using userId as KarmaId
+                        reason: selectedReason!,
+                        description: descriptionController.text.trim().isEmpty 
+                            ? null 
+                            : descriptionController.text.trim(),
+                        postContent: post.content,
+                        postMediaUrls: post.mediaUrls,
                       );
+                      
+                      descriptionController.dispose();
+                      if (context.mounted) {
+                        Navigator.pop(context);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Row(
+                              children: [
+                                const Icon(Icons.check_circle, color: Colors.white),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    success 
+                                      ? 'Report submitted. We\'ll review this within 24 hours.' 
+                                      : 'Failed to submit report. Please try again.',
+                                  ),
+                                ),
+                              ],
+                            ),
+                            backgroundColor: success ? const Color(0xFF6B73FF) : Colors.red,
+                            duration: const Duration(seconds: 3),
+                          ),
+                        );
+                      }
                     }
                   : null,
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF6B73FF),
+                disabledBackgroundColor: Colors.grey,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               ),
-              child: const Text('Submit'),
+              child: const Text('Submit Report'),
             ),
           ],
         ),

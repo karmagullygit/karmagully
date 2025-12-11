@@ -218,6 +218,8 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen>
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
                           ),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
                         ),
                         const SizedBox(height: 2),
                         Text(
@@ -226,11 +228,15 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen>
                             color: Colors.grey[600],
                             fontSize: 12,
                           ),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
                         ),
                       ],
                     ),
                   ),
-                  _buildStatusChip(order.status),
+                  Flexible(
+                    child: _buildStatusChip(order.status),
+                  ),
                 ],
               ),
               

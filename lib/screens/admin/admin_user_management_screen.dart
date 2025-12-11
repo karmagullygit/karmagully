@@ -7,7 +7,9 @@ import '../../models/user.dart';
 import '../../models/social_post.dart';
 
 class AdminUserManagementScreen extends StatefulWidget {
-  const AdminUserManagementScreen({super.key});
+  final String? searchKarmaId;
+  
+  const AdminUserManagementScreen({super.key, this.searchKarmaId});
 
   @override
   State<AdminUserManagementScreen> createState() => _AdminUserManagementScreenState();
@@ -22,6 +24,12 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> w
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+    
+    // Pre-fill search if Karma ID is provided
+    if (widget.searchKarmaId != null) {
+      _searchController.text = widget.searchKarmaId!;
+      _searchQuery = widget.searchKarmaId!;
+    }
   }
 
   @override

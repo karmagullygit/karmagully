@@ -7,6 +7,7 @@ import '../../models/product_variant.dart';
 import '../../providers/product_provider.dart';
 import '../../providers/category_provider.dart';
 import '../../utils/navigation_helper.dart';
+import '../../utils/responsive_utils.dart';
 import '../../widgets/image_upload_widget.dart';
 import 'admin_product_section_assignment_screen.dart';
 
@@ -18,12 +19,44 @@ class ProductManagementScreen extends StatefulWidget {
 }
 
 class _ProductManagementScreenState extends State<ProductManagementScreen> {
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+  String _selectedStockFilter = 'all'; // all, in_stock, low_stock, out_of_stock
+  String? _selectedCategory;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Provider.of<ProductProvider>(context, listen: false).loadProducts();
     });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  List<Product> _filterProducts(List<Product> products) {
+    return products.where((product) {
+      // Search filter
+      final matchesSearch = _searchQuery.isEmpty ||
+          product.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+          product.description.toLowerCase().contains(_searchQuery.toLowerCase());
+
+      // Stock filter
+      final matchesStock = _selectedStockFilter == 'all' ||
+          (_selectedStockFilter == 'in_stock' && product.stock > 10) ||
+          (_selectedStockFilter == 'low_stock' && product.stock > 0 && product.stock <= 10) ||
+          (_selectedStockFilter == 'out_of_stock' && product.stock == 0);
+
+      // Category filter
+      final matchesCategory = _selectedCategory == null ||
+          product.category == _selectedCategory;
+
+      return matchesSearch && matchesStock && matchesCategory;
+    }).toList();
   }
 
   @override
@@ -50,9 +83,10 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
             return const Center(child: CircularProgressIndicator());
           }
 
-          final products = productProvider.products;
+          final allProducts = productProvider.products;
+          final products = _filterProducts(allProducts);
 
-          if (products.isEmpty) {
+          if (allProducts.isEmpty) {
             return const Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -67,90 +101,204 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
             );
           }
 
-          return ListView.builder(
-            itemCount: products.length,
-            itemBuilder: (context, index) {
-              final product = products[index];
-              return Card(
-                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                child: ListTile(
-                  leading: Container(
-                    width: 60,
-                    height: 60,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(8),
+          return Column(
+            children: [
+              // Search Bar
+              Padding(
+                padding: EdgeInsets.all(ResponsiveUtils.getHorizontalPadding(context)),
+                child: TextField(
+                  controller: _searchController,
+                  decoration: InputDecoration(
+                    hintText: 'Search products...',
+                    prefixIcon: const Icon(Icons.search),
+                    suffixIcon: _searchQuery.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear),
+                            onPressed: () {
+                              setState(() {
+                                _searchController.clear();
+                                _searchQuery = '';
+                              });
+                            },
+                          )
+                        : null,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: _buildProductImage(product),
+                    filled: true,
+                    fillColor: Colors.grey[100],
+                  ),
+                  onChanged: (value) {
+                    setState(() {
+                      _searchQuery = value;
+                    });
+                  },
+                ),
+              ),
+
+              // Filter Chips
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                padding: EdgeInsets.symmetric(
+                  horizontal: ResponsiveUtils.getHorizontalPadding(context),
+                ),
+                child: Row(
+                  children: [
+                    // Stock Filter
+                    FilterChip(
+                      label: const Text('All Stock'),
+                      selected: _selectedStockFilter == 'all',
+                      onSelected: (selected) {
+                        setState(() {
+                          _selectedStockFilter = 'all';
+                        });
+                      },
                     ),
-                  ),
-                  title: Text(
-                    product.name,
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('\$${product.price.toStringAsFixed(2)}'),
-                      Row(
-                        children: [
-                          Text('Stock: ${product.stock}'),
-                          const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 2,
+                    const SizedBox(width: 8),
+                    FilterChip(
+                      label: const Text('In Stock'),
+                      avatar: const Icon(Icons.check_circle, size: 18, color: Colors.green),
+                      selected: _selectedStockFilter == 'in_stock',
+                      onSelected: (selected) {
+                        setState(() {
+                          _selectedStockFilter = 'in_stock';
+                        });
+                      },
+                    ),
+                    const SizedBox(width: 8),
+                    FilterChip(
+                      label: const Text('Low Stock'),
+                      avatar: const Icon(Icons.warning, size: 18, color: Colors.orange),
+                      selected: _selectedStockFilter == 'low_stock',
+                      onSelected: (selected) {
+                        setState(() {
+                          _selectedStockFilter = 'low_stock';
+                        });
+                      },
+                    ),
+                    const SizedBox(width: 8),
+                    FilterChip(
+                      label: const Text('Out of Stock'),
+                      avatar: const Icon(Icons.cancel, size: 18, color: Colors.red),
+                      selected: _selectedStockFilter == 'out_of_stock',
+                      onSelected: (selected) {
+                        setState(() {
+                          _selectedStockFilter = 'out_of_stock';
+                        });
+                      },
+                    ),
+                    const SizedBox(width: 8),
+                    // Category Filter
+                    Consumer<CategoryProvider>(
+                      builder: (context, categoryProvider, child) {
+                        return PopupMenuButton<String?>(
+                          child: Chip(
+                            label: Text(
+                              _selectedCategory == null
+                                  ? 'All Categories'
+                                  : _selectedCategory!,
                             ),
-                            decoration: BoxDecoration(
-                              color: product.stock > 10
-                                  ? Colors.green.withOpacity(0.1)
-                                  : product.stock > 0
-                                      ? Colors.orange.withOpacity(0.1)
-                                      : Colors.red.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(12),
+                            avatar: const Icon(Icons.category, size: 18),
+                            deleteIcon: _selectedCategory != null
+                                ? const Icon(Icons.close, size: 18)
+                                : null,
+                            onDeleted: _selectedCategory != null
+                                ? () {
+                                    setState(() {
+                                      _selectedCategory = null;
+                                    });
+                                  }
+                                : null,
+                          ),
+                          onSelected: (value) {
+                            setState(() {
+                              _selectedCategory = value;
+                            });
+                          },
+                          itemBuilder: (context) => [
+                            const PopupMenuItem<String?>(
+                              value: null,
+                              child: Text('All Categories'),
                             ),
-                            child: Text(
-                              product.stock > 10
-                                  ? 'In Stock'
-                                  : product.stock > 0
-                                      ? 'Low Stock'
-                                      : 'Out of Stock',
-                              style: TextStyle(
-                                color: product.stock > 10
-                                    ? Colors.green
-                                    : product.stock > 0
-                                        ? Colors.orange
-                                        : Colors.red,
-                                fontSize: 12,
+                            ...categoryProvider.categories.map(
+                              (category) => PopupMenuItem<String>(
+                                value: category.name,
+                                child: Text(category.name),
                               ),
                             ),
-                          ),
-                        ],
-                      ),
-                    ],
+                          ],
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 8),
+
+              // Results count
+              if (_searchQuery.isNotEmpty || _selectedStockFilter != 'all' || _selectedCategory != null)
+                Padding(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: ResponsiveUtils.getHorizontalPadding(context),
                   ),
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
+                  child: Row(
                     children: [
-                      IconButton(
-                        icon: const Icon(Icons.category, color: Colors.purple),
-                        tooltip: 'Assign to Sections',
-                        onPressed: () => _showSectionAssignment(context, product),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.edit, color: Colors.blue),
-                        onPressed: () => _showProductDialog(context, product),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.delete, color: Colors.red),
-                        onPressed: () => _deleteProduct(context, product),
+                      Text(
+                        '${products.length} product${products.length == 1 ? '' : 's'} found',
+                        style: TextStyle(
+                          color: Colors.grey[600],
+                          fontSize: 13,
+                        ),
                       ),
                     ],
                   ),
                 ),
-              );
-            },
+
+              // Product List
+              if (products.isEmpty)
+                Expanded(
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.search_off, size: 64, color: Colors.grey[400]),
+                        const SizedBox(height: 16),
+                        const Text(
+                          'No products match your filters',
+                          style: TextStyle(fontSize: 16, color: Colors.grey),
+                        ),
+                        const SizedBox(height: 8),
+                        TextButton(
+                          onPressed: () {
+                            setState(() {
+                              _searchController.clear();
+                              _searchQuery = '';
+                              _selectedStockFilter = 'all';
+                              _selectedCategory = null;
+                            });
+                          },
+                          child: const Text('Clear filters'),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              else
+                Expanded(
+                  child: ListView.builder(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: ResponsiveUtils.getHorizontalPadding(context),
+                      vertical: ResponsiveUtils.getVerticalPadding(context),
+                    ),
+                    itemCount: products.length,
+                    itemBuilder: (context, index) {
+                      final product = products[index];
+                      return _buildProductCard(context, product);
+                    },
+                  ),
+                ),
+            ],
           );
         },
       ),
@@ -158,6 +306,141 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
         onPressed: () => _showProductDialog(context),
         backgroundColor: Colors.blue,
         child: const Icon(Icons.add),
+      ),
+    );
+  }
+
+  Widget _buildProductCard(BuildContext context, Product product) {
+    final isMobile = ResponsiveUtils.isMobile(context);
+    
+    return Card(
+      margin: EdgeInsets.only(
+        bottom: ResponsiveUtils.getVerticalSpacing(context),
+      ),
+      child: Padding(
+        padding: EdgeInsets.all(isMobile ? 10 : 12),
+        child: Row(
+          children: [
+            // Product Image - Compact size
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: SizedBox(
+                width: isMobile ? 60 : 70,
+                height: isMobile ? 60 : 70,
+                child: _buildProductImage(product),
+              ),
+            ),
+            
+            SizedBox(width: isMobile ? 10 : 12),
+            
+            // Product Info - Takes remaining space
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    product.name,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: isMobile ? 14 : 16,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '\$${product.price.toStringAsFixed(2)}',
+                    style: TextStyle(
+                      fontSize: isMobile ? 13 : 14,
+                      color: Colors.grey[700],
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.inventory_2_outlined,
+                        size: isMobile ? 14 : 15,
+                        color: product.stock > 10
+                            ? Colors.green
+                            : product.stock > 0
+                                ? Colors.orange
+                                : Colors.red,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        '${product.stock}',
+                        style: TextStyle(
+                          fontSize: isMobile ? 12 : 13,
+                          color: product.stock > 10
+                              ? Colors.green
+                              : product.stock > 0
+                                  ? Colors.orange
+                                  : Colors.red,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            
+            // Action Menu - Popup menu for space efficiency
+            PopupMenuButton<String>(
+              icon: Icon(
+                Icons.more_vert,
+                color: Colors.grey[700],
+                size: isMobile ? 22 : 24,
+              ),
+              padding: EdgeInsets.zero,
+              offset: const Offset(-10, 40),
+              onSelected: (value) {
+                if (value == 'category') {
+                  _showSectionAssignment(context, product);
+                } else if (value == 'edit') {
+                  _showProductDialog(context, product);
+                } else if (value == 'delete') {
+                  _deleteProduct(context, product);
+                }
+              },
+              itemBuilder: (context) => [
+                PopupMenuItem(
+                  value: 'category',
+                  child: Row(
+                    children: [
+                      Icon(Icons.category, color: Colors.purple, size: 20),
+                      const SizedBox(width: 12),
+                      const Text('Assign Sections'),
+                    ],
+                  ),
+                ),
+                PopupMenuItem(
+                  value: 'edit',
+                  child: Row(
+                    children: [
+                      Icon(Icons.edit, color: Colors.blue, size: 20),
+                      const SizedBox(width: 12),
+                      const Text('Edit Product'),
+                    ],
+                  ),
+                ),
+                PopupMenuItem(
+                  value: 'delete',
+                  child: Row(
+                    children: [
+                      Icon(Icons.delete, color: Colors.red, size: 20),
+                      const SizedBox(width: 12),
+                      const Text('Delete Product'),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

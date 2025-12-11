@@ -59,23 +59,17 @@ class _UPIAppSelectorState extends State<UPIAppSelector> {
           const SizedBox(height: 16),
           
           // UPI Apps Grid
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 3,
-              childAspectRatio: 1.2,
-              crossAxisSpacing: 8,
-              mainAxisSpacing: 8,
-            ),
-            itemCount: availableApps.length,
-            itemBuilder: (context, index) {
-              final app = availableApps[index];
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: availableApps.map((app) {
               final isSelected = _selectedApp == app;
               
               return GestureDetector(
                 onTap: () => _selectApp(app),
                 child: Container(
+                  width: (MediaQuery.of(context).size.width - 80) / 3,
+                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
                   decoration: BoxDecoration(
                     color: isSelected ? Colors.blue.shade100 : Colors.white,
                     borderRadius: BorderRadius.circular(8),
@@ -86,20 +80,51 @@ class _UPIAppSelectorState extends State<UPIAppSelector> {
                   ),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(
-                        app.icon,
-                        style: const TextStyle(fontSize: 24),
+                      // Use real logo image
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Image.network(
+                          app.logoUrl,
+                          width: 32,
+                          height: 32,
+                          fit: BoxFit.contain,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Text(
+                              app.icon,
+                              style: const TextStyle(fontSize: 24),
+                            );
+                          },
+                          loadingBuilder: (context, child, loadingProgress) {
+                            if (loadingProgress == null) return child;
+                            return SizedBox(
+                              width: 32,
+                              height: 32,
+                              child: Center(
+                                child: CircularProgressIndicator(
+                                  value: loadingProgress.expectedTotalBytes != null
+                                      ? loadingProgress.cumulativeBytesLoaded /
+                                          loadingProgress.expectedTotalBytes!
+                                      : null,
+                                  strokeWidth: 2,
+                                ),
+                              ),
+                            );
+                          },
+                        ),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         app.name,
                         style: TextStyle(
-                          fontSize: 12,
+                          fontSize: 11,
                           fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                           color: isSelected ? Colors.blue.shade700 : Colors.grey.shade700,
                         ),
                         textAlign: TextAlign.center,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                       if (app.isInstalled) ...[
                         const SizedBox(height: 2),
@@ -122,7 +147,7 @@ class _UPIAppSelectorState extends State<UPIAppSelector> {
                   ),
                 ),
               );
-            },
+            }).toList(),
           ),
           
           if (_selectedApp != null) ...[

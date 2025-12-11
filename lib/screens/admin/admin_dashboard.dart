@@ -274,6 +274,22 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 ),
                 const SizedBox(height: 12),
                 _buildManagementTile(
+                  'Reports Management',
+                  'Review customer reports and moderate content',
+                  Icons.flag,
+                  Colors.orange,
+                  () => Navigator.pushNamed(context, '/admin-reports-management'),
+                ),
+                const SizedBox(height: 12),
+                _buildManagementTile(
+                  'Notification Settings',
+                  'Configure WhatsApp & email order notifications',
+                  Icons.notifications_active,
+                  Colors.green,
+                  () => Navigator.pushNamed(context, '/admin-notification-settings'),
+                ),
+                const SizedBox(height: 12),
+                _buildManagementTile(
                   'Flash Sales',
                   'Create and manage flash sales with countdown timers',
                   Icons.flash_on,

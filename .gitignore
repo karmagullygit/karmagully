@@ -12,6 +12,15 @@
 .swiftpm/
 migrate_working_dir/
 
+# Sensitive credentials and environment variables
+.env
+.env.local
+.env.*.local
+**/credentials.json
+**/secrets.dart
+**/secure_credentials.dart
+test_whatsapp.dart
+
 # IntelliJ related
 *.iml
 *.ipr

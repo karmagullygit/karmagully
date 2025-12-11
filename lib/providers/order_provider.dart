@@ -6,6 +6,7 @@ import '../models/user.dart';
 import '../models/order_tracking.dart';
 import '../models/payment_method.dart';
 import '../services/notification_service.dart';
+import '../services/auto_whatsapp_service.dart';
 
 class OrderProvider with ChangeNotifier {
   final List<Order> _orders = [];
@@ -69,13 +70,13 @@ class OrderProvider with ChangeNotifier {
              .fold(0.0, (sum, order) => sum + order.totalAmount);
 
   /// Place a new order
-  String placeOrder({
+  Future<String> placeOrder({
     required User user,
     required List<CartItem> cartItems,
     required String shippingAddress,
     String? notes,
     PaymentInfo? paymentInfo,
-  }) {
+  }) async {
     if (cartItems.isEmpty) {
       throw Exception('Cannot place order with empty cart');
     }
@@ -102,19 +103,33 @@ class OrderProvider with ChangeNotifier {
     );
 
     _orders.add(order);
-    // Notify admin via email about new order (best-effort).
+    
+    // Send email notification (silent - best effort)
     try {
       NotificationService.sendOrderNotification(order);
     } catch (e) {
-      debugPrint('Failed to send order notification: $e');
+      debugPrint('Failed to send email notification: $e');
     }
+    
+    // Send AUTOMATIC WhatsApp notification to admin
+    try {
+      final sent = await AutoWhatsAppService.sendOrderNotification(order);
+      if (sent) {
+        debugPrint('✅ WhatsApp notification sent automatically to admin');
+      } else {
+        debugPrint('⚠️ WhatsApp notification failed - check Twilio configuration');
+      }
+    } catch (e) {
+      debugPrint('Failed to send auto WhatsApp notification: $e');
+    }
+    
     notifyListeners();
 
     return orderId;
   }
 
   /// Update order status (admin function)
-  bool updateOrderStatus(String orderId, OrderStatus newStatus) {
+  Future<bool> updateOrderStatus(String orderId, OrderStatus newStatus) async {
     try {
       final orderIndex = _orders.indexWhere((order) => order.id == orderId);
       if (orderIndex == -1) return false;
@@ -125,11 +140,48 @@ class OrderProvider with ChangeNotifier {
       );
 
       _orders[orderIndex] = updatedOrder;
+      
+      // Send AUTOMATIC WhatsApp status update to customer
+      try {
+        String statusMessage = _getStatusMessage(newStatus);
+        final sent = await AutoWhatsAppService.sendStatusUpdate(
+          updatedOrder,
+          statusMessage,
+        );
+        if (sent) {
+          debugPrint('✅ WhatsApp status update sent automatically to customer');
+        } else {
+          debugPrint('⚠️ WhatsApp status update failed - check Twilio configuration');
+        }
+      } catch (e) {
+        debugPrint('Failed to send auto WhatsApp status update: $e');
+      }
+      
       notifyListeners();
       return true;
     } catch (e) {
       debugPrint('Error updating order status: $e');
       return false;
+    }
+  }
+
+  /// Get user-friendly status message
+  String _getStatusMessage(OrderStatus status) {
+    switch (status) {
+      case OrderStatus.pending:
+        return '⏳ Pending - Your order is being processed';
+      case OrderStatus.confirmed:
+        return '✅ Confirmed - Your order has been confirmed';
+      case OrderStatus.processing:
+        return '📦 Processing - Your order is being prepared';
+      case OrderStatus.shipped:
+        return '🚚 Shipped - Your order is on the way';
+      case OrderStatus.delivered:
+        return '✨ Delivered - Your order has been delivered';
+      case OrderStatus.cancelled:
+        return '❌ Cancelled - Your order has been cancelled';
+      default:
+        return 'Order status updated';
     }
   }
 

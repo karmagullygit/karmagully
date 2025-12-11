@@ -78,6 +78,7 @@ class RealUPIService {
         icon: '📱',
         color: '#5F259F',
         isInstalled: true, // Assume installed for demo
+        logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/04/PhonePe_Logo.png/300px-PhonePe_Logo.png',
       ),
       UPIApp(
         name: 'Google Pay',
@@ -85,6 +86,7 @@ class RealUPIService {
         icon: '🎨',
         color: '#4285F4',
         isInstalled: true,
+        logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/f/f2/Google_Pay_Logo.svg/300px-Google_Pay_Logo.svg.png',
       ),
       UPIApp(
         name: 'Paytm',
@@ -92,6 +94,7 @@ class RealUPIService {
         icon: '💙',
         color: '#00BAF2',
         isInstalled: true,
+        logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/24/Paytm_Logo_%28standalone%29.svg/300px-Paytm_Logo_%28standalone%29.svg.png',
       ),
       UPIApp(
         name: 'BHIM',
@@ -99,6 +102,7 @@ class RealUPIService {
         icon: '🏛️',
         color: '#FF6B35',
         isInstalled: true,
+        logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/7/71/Bhim-logo.svg/300px-Bhim-logo.svg.png',
       ),
       UPIApp(
         name: 'Amazon Pay',
@@ -106,6 +110,7 @@ class RealUPIService {
         icon: '📦',
         color: '#FF9900',
         isInstalled: true,
+        logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/bc/Amazon-icon.svg/300px-Amazon-icon.svg.png',
       ),
     ];
   }
@@ -175,6 +180,7 @@ class UPIApp {
   final String icon;
   final String color;
   final bool isInstalled;
+  final String logoUrl;
 
   UPIApp({
     required this.name,
@@ -182,6 +188,7 @@ class UPIApp {
     required this.icon,
     required this.color,
     this.isInstalled = false,
+    required this.logoUrl,
   });
 
   @override

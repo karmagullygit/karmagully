@@ -35,6 +35,8 @@ class _HomeScreenState extends State<HomeScreen> {
   int _currentPageIndex = 0;
   Timer? _carouselTimer;
   PageController? _carouselController;
+  String _searchQuery = '';
+  RangeValues _priceRange = const RangeValues(0, 10000);
 
   @override
   void initState() {
@@ -149,15 +151,36 @@ class _HomeScreenState extends State<HomeScreen> {
                   slivers: [
                     _buildAppBar(context, true), // Force dark mode
                     _buildSearchSection(context, true),
-                    _buildCarouselSection(context, true),
-                    _buildFlashSalesSection(context, true),
-                    _buildCategoriesSection(context, true),
-                    if (featureSettings.customerFeedEnabled)
-                      _buildSocialFeedPreviewSection(context, true),
-                    _buildFeaturedSection(context, true),
-                    SliverToBoxAdapter(
-                      child: _buildProductSections(context),
-                    ),
+                    // Only show other sections when not searching
+                    if (_searchQuery.isEmpty) ...[
+                      _buildCarouselSection(context, true),
+                      _buildFlashSalesSection(context, true),
+                      _buildCategoriesSection(context, true),
+                      if (featureSettings.customerFeedEnabled)
+                        _buildSocialFeedPreviewSection(context, true),
+                      _buildFeaturedSection(context, true),
+                      SliverToBoxAdapter(
+                        child: _buildProductSections(context),
+                      ),
+                    ] else ...[
+                      // Show search results header when searching
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: ResponsiveUtils.getHorizontalPadding(context),
+                            vertical: ResponsiveUtils.getVerticalSpacing(context),
+                          ),
+                          child: Text(
+                            'Search Results',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                     _buildProductGrid(context, true),
                     const SliverToBoxAdapter(child: SizedBox(height: 100)),
                   ],
@@ -247,6 +270,11 @@ class _HomeScreenState extends State<HomeScreen> {
               color: Colors.white,
               fontSize: ResponsiveUtils.getBodyFontSize(context),
             ),
+            onChanged: (value) {
+              setState(() {
+                _searchQuery = value;
+              });
+            },
             onSubmitted: (query) {
               // Track search action
               final analytics = Provider.of<AppAnalyticsProvider>(context, listen: false);
@@ -258,7 +286,7 @@ class _HomeScreenState extends State<HomeScreen> {
               );
             },
             decoration: InputDecoration(
-              hintText: 'Search for posters...',
+              hintText: 'Search products...',
               hintStyle: TextStyle(
                 color: Colors.white.withOpacity(0.5),
                 fontSize: ResponsiveUtils.getBodyFontSize(context),
@@ -268,18 +296,40 @@ class _HomeScreenState extends State<HomeScreen> {
                 color: const Color(0xFF6B73FF), // Neon blue accent
                 size: ResponsiveUtils.getIconSize(context),
               ),
-              suffixIcon: Container(
-                margin: EdgeInsets.all(ResponsiveUtils.getVerticalSpacing(context)),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF6B73FF), // Neon blue
-                  borderRadius: BorderRadius.circular(ResponsiveUtils.getBorderRadius(context)),
-                ),
-                child: Icon(
-                  Icons.tune,
-                  color: Colors.white,
-                  size: ResponsiveUtils.getIconSize(context) * 0.8,
-                ),
-              ),
+              suffixIcon: _searchQuery.isNotEmpty
+                  ? GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          _searchController.clear();
+                          _searchQuery = '';
+                        });
+                      },
+                      child: Container(
+                        margin: EdgeInsets.all(ResponsiveUtils.getVerticalSpacing(context)),
+                        child: Icon(
+                          Icons.clear,
+                          color: Colors.white70,
+                          size: ResponsiveUtils.getIconSize(context) * 0.8,
+                        ),
+                      ),
+                    )
+                  : GestureDetector(
+                      onTap: () {
+                        _showFilterBottomSheet(context);
+                      },
+                      child: Container(
+                        margin: EdgeInsets.all(ResponsiveUtils.getVerticalSpacing(context)),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF6B73FF), // Neon blue
+                          borderRadius: BorderRadius.circular(ResponsiveUtils.getBorderRadius(context)),
+                        ),
+                        child: Icon(
+                          Icons.tune,
+                          color: Colors.white,
+                          size: ResponsiveUtils.getIconSize(context) * 0.8,
+                        ),
+                      ),
+                    ),
               border: InputBorder.none,
               contentPadding: EdgeInsets.symmetric(
                 horizontal: ResponsiveUtils.getHorizontalPadding(context),
@@ -1816,6 +1866,51 @@ class _HomeScreenState extends State<HomeScreen> {
           );
         }
 
+        // Filter products based on search query
+        final filteredProducts = _searchQuery.isEmpty
+            ? productProvider.products
+            : productProvider.products.where((product) {
+                return product.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+                       product.description.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+                       product.category.toLowerCase().contains(_searchQuery.toLowerCase());
+              }).toList();
+
+        // Apply price range filter
+        final priceFilteredProducts = filteredProducts.where((product) {
+          return product.price >= _priceRange.start && product.price <= _priceRange.end;
+        }).toList();
+
+        if (priceFilteredProducts.isEmpty && _searchQuery.isNotEmpty) {
+          return SliverToBoxAdapter(
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(40),
+                child: Column(
+                  children: [
+                    Icon(Icons.search_off, size: 64, color: Colors.white.withOpacity(0.3)),
+                    const SizedBox(height: 16),
+                    Text(
+                      'No products found for "$_searchQuery"',
+                      style: const TextStyle(color: Colors.white70, fontSize: 16),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 8),
+                    TextButton(
+                      onPressed: () {
+                        setState(() {
+                          _searchQuery = '';
+                          _searchController.clear();
+                        });
+                      },
+                      child: const Text('Clear search', style: TextStyle(color: Color(0xFF6B73FF))),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }
+
         return SliverToBoxAdapter(
           child: Container(
             padding: EdgeInsets.all(ResponsiveUtils.getHorizontalPadding(context)),
@@ -1828,9 +1923,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 crossAxisSpacing: ResponsiveUtils.getHorizontalSpacing(context),
                 mainAxisSpacing: ResponsiveUtils.getVerticalSpacing(context),
               ),
-              itemCount: productProvider.products.length,
+              itemCount: priceFilteredProducts.length,
               itemBuilder: (context, index) {
-                final product = productProvider.products[index];
+                final product = priceFilteredProducts[index];
                 return _buildProductCard(context, product);
               },
             ),
@@ -2123,6 +2218,228 @@ class _HomeScreenState extends State<HomeScreen> {
     return '${hours.toString().padLeft(2, '0')}:'
            '${minutes.toString().padLeft(2, '0')}:'
            '${seconds.toString().padLeft(2, '0')}';
+  }
+
+  void _showFilterBottomSheet(BuildContext context) {
+    RangeValues tempPriceRange = _priceRange;
+    
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF1E2139),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      isScrollControlled: true,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Consumer2<CategoryProvider, ProductProvider>(
+              builder: (context, categoryProvider, productProvider, child) {
+                return Container(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Header
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'Filter Products',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.close, color: Colors.white),
+                            onPressed: () => Navigator.pop(context),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+                      
+                      // Category Filter
+                      const Text(
+                        'Categories',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white70,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          FilterChip(
+                            label: const Text('All'),
+                            selected: _searchQuery.isEmpty,
+                            onSelected: (selected) {
+                              setState(() {
+                                _searchQuery = '';
+                                _searchController.clear();
+                              });
+                              Navigator.pop(context);
+                            },
+                            backgroundColor: const Color(0xFF2A2D3A),
+                            selectedColor: const Color(0xFF6B73FF),
+                            labelStyle: const TextStyle(color: Colors.white),
+                          ),
+                          ...categoryProvider.categories.map((category) {
+                            return FilterChip(
+                              label: Text(category.name),
+                              selected: false,
+                              onSelected: (selected) {
+                                setState(() {
+                                  _searchQuery = category.name;
+                                  _searchController.text = category.name;
+                                });
+                                Navigator.pop(context);
+                              },
+                              backgroundColor: const Color(0xFF2A2D3A),
+                              selectedColor: const Color(0xFF6B73FF),
+                              labelStyle: const TextStyle(color: Colors.white),
+                            );
+                          }),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+                      
+                      // Price Range Slider
+                      const Text(
+                        'Price Range',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white70,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            '₹${tempPriceRange.start.round()}',
+                            style: const TextStyle(
+                              color: Color(0xFF6B73FF),
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          Text(
+                            '₹${tempPriceRange.end.round()}',
+                            style: const TextStyle(
+                              color: Color(0xFF6B73FF),
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                      RangeSlider(
+                        values: tempPriceRange,
+                        min: 0,
+                        max: 10000,
+                        divisions: 100,
+                        activeColor: const Color(0xFF6B73FF),
+                        inactiveColor: const Color(0xFF2A2D3A),
+                        labels: RangeLabels(
+                          '₹${tempPriceRange.start.round()}',
+                          '₹${tempPriceRange.end.round()}',
+                        ),
+                        onChanged: (RangeValues values) {
+                          setModalState(() {
+                            tempPriceRange = values;
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            '₹0',
+                            style: TextStyle(
+                              color: Colors.white.withOpacity(0.5),
+                              fontSize: 12,
+                            ),
+                          ),
+                          Text(
+                            '₹10,000',
+                            style: TextStyle(
+                              color: Colors.white.withOpacity(0.5),
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+                      
+                      // Apply Button
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: () {
+                            setState(() {
+                              _priceRange = tempPriceRange;
+                            });
+                            Navigator.pop(context);
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF6B73FF),
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: const Text(
+                            'Apply Filters',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      // Reset Button
+                      SizedBox(
+                        width: double.infinity,
+                        child: TextButton(
+                          onPressed: () {
+                            setModalState(() {
+                              tempPriceRange = const RangeValues(0, 10000);
+                            });
+                            setState(() {
+                              _priceRange = const RangeValues(0, 10000);
+                              _searchQuery = '';
+                              _searchController.clear();
+                            });
+                            Navigator.pop(context);
+                          },
+                          child: const Text(
+                            'Reset All Filters',
+                            style: TextStyle(
+                              color: Colors.white70,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            );
+          },
+        );
+      },
+    );
   }
 }
 
