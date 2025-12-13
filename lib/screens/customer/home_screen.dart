@@ -241,101 +241,99 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildSearchSection(BuildContext context, bool isDarkMode) {
     return SliverToBoxAdapter(
-      child: Container(
-        margin: EdgeInsets.fromLTRB(
-          ResponsiveUtils.getHorizontalPadding(context), 
-          ResponsiveUtils.getVerticalSpacing(context) * 0.5, 
-          ResponsiveUtils.getHorizontalPadding(context), 
-          ResponsiveUtils.getVerticalSpacing(context)
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(
+          ResponsiveUtils.getHorizontalPadding(context),
+          ResponsiveUtils.getVerticalSpacing(context) * 0.5,
+          ResponsiveUtils.getHorizontalPadding(context),
+          ResponsiveUtils.getVerticalSpacing(context),
         ),
         child: Container(
+          height: 56,
           decoration: BoxDecoration(
-            color: const Color(0xFF1E2139), // Dark card background
-            borderRadius: BorderRadius.circular(ResponsiveUtils.getBorderRadius(context) + 8),
+            color: const Color(0xFF1A1F3A),
+            borderRadius: BorderRadius.circular(28),
             border: Border.all(
-              color: const Color(0xFF2A2D3A), // Subtle border
-              width: 1,
+              color: const Color(0xFF5B4FCF),
+              width: 2,
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.3),
-                blurRadius: 15,
-                offset: const Offset(0, 5),
+                color: const Color(0xFF5B4FCF).withOpacity(0.5),
+                blurRadius: 20,
+                offset: const Offset(0, 4),
               ),
             ],
           ),
-          child: TextField(
-            controller: _searchController,
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: ResponsiveUtils.getBodyFontSize(context),
-            ),
-            onChanged: (value) {
-              setState(() {
-                _searchQuery = value;
-              });
-            },
-            onSubmitted: (query) {
-              // Track search action
-              final analytics = Provider.of<AppAnalyticsProvider>(context, listen: false);
-              analytics.trackUserAction(
-                userId: 'user_${DateTime.now().millisecondsSinceEpoch}',
-                action: 'search',
-                screen: 'home',
-                metadata: {'query': query},
-              );
-            },
-            decoration: InputDecoration(
-              hintText: 'Search products...',
-              hintStyle: TextStyle(
-                color: Colors.white.withOpacity(0.5),
-                fontSize: ResponsiveUtils.getBodyFontSize(context),
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Row(
+            children: [
+              const Icon(Icons.search, color: Color(0xFF8B7FD8), size: 24),
+              const SizedBox(width: 12),
+              Expanded(
+                child: TextField(
+                  controller: _searchController,
+                  style: const TextStyle(color: Color(0xFFB4B0C8), fontSize: 16),
+                  onChanged: (value) {
+                    setState(() {
+                      _searchQuery = value;
+                    });
+                  },
+                  onSubmitted: (query) {
+                    final analytics = Provider.of<AppAnalyticsProvider>(context, listen: false);
+                    analytics.trackUserAction(
+                      userId: 'user_${DateTime.now().millisecondsSinceEpoch}',
+                      action: 'search',
+                      screen: 'home',
+                      metadata: {'query': query},
+                    );
+                  },
+                  cursorColor: const Color(0xFF8B7FD8),
+                  decoration: const InputDecoration(
+                    border: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: InputBorder.none,
+                    filled: false,
+                    hintText: 'Search products...',
+                    hintStyle: TextStyle(color: Color(0xFF6B677A), fontSize: 16),
+                    contentPadding: EdgeInsets.zero,
+                    isDense: true,
+                  ),
+                ),
               ),
-              prefixIcon: Icon(
-                Icons.search,
-                color: const Color(0xFF6B73FF), // Neon blue accent
-                size: ResponsiveUtils.getIconSize(context),
-              ),
-              suffixIcon: _searchQuery.isNotEmpty
-                  ? GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          _searchController.clear();
-                          _searchQuery = '';
-                        });
-                      },
-                      child: Container(
-                        margin: EdgeInsets.all(ResponsiveUtils.getVerticalSpacing(context)),
-                        child: Icon(
-                          Icons.clear,
-                          color: Colors.white70,
-                          size: ResponsiveUtils.getIconSize(context) * 0.8,
-                        ),
+              if (_searchQuery.isNotEmpty)
+                GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _searchController.clear();
+                      _searchQuery = '';
+                    });
+                  },
+                  child: const Padding(
+                    padding: EdgeInsets.all(8.0),
+                    child: Icon(Icons.clear, color: Colors.white70, size: 20),
+                  ),
+                ),
+              const SizedBox(width: 4),
+              GestureDetector(
+                onTap: () => _showFilterBottomSheet(context),
+                child: Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF5B4FCF),
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF5B4FCF).withOpacity(0.4),
+                        blurRadius: 12,
                       ),
-                    )
-                  : GestureDetector(
-                      onTap: () {
-                        _showFilterBottomSheet(context);
-                      },
-                      child: Container(
-                        margin: EdgeInsets.all(ResponsiveUtils.getVerticalSpacing(context)),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF6B73FF), // Neon blue
-                          borderRadius: BorderRadius.circular(ResponsiveUtils.getBorderRadius(context)),
-                        ),
-                        child: Icon(
-                          Icons.tune,
-                          color: Colors.white,
-                          size: ResponsiveUtils.getIconSize(context) * 0.8,
-                        ),
-                      ),
-                    ),
-              border: InputBorder.none,
-              contentPadding: EdgeInsets.symmetric(
-                horizontal: ResponsiveUtils.getHorizontalPadding(context),
-                vertical: ResponsiveUtils.getVerticalPadding(context),
+                    ],
+                  ),
+                  child: const Icon(Icons.tune, color: Colors.white, size: 20),
+                ),
               ),
-            ),
+            ],
           ),
         ),
       ),
@@ -1045,7 +1043,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildAppBar(BuildContext context, bool isDarkMode) {
     return SliverToBoxAdapter(
       child: Container(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.fromLTRB(16, 18, 16, 8),
         child: Row(
           children: [
             // Profile/Menu button
@@ -1053,9 +1051,8 @@ class _HomeScreenState extends State<HomeScreen> {
               width: 40,
               height: 40,
               decoration: BoxDecoration(
-                color: const Color(0xFF1E2139),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFF2A2D3A)),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: const Color(0xFF7C3AED)),
               ),
               child: IconButton(
                 onPressed: () {
@@ -1066,8 +1063,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 },
                 icon: const Icon(
                   Icons.person,
-                  color: Color(0xFF6B73FF),
-                  size: 20,
+                  color: Color(0xFF7C3AED),
+                  size: 22,
                 ),
               ),
             ),
@@ -1080,7 +1077,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   Text(
                     'KarmaShop',
                     style: TextStyle(
-                      fontSize: 20,
+                      fontSize: 24,
                       fontWeight: FontWeight.bold,
                       color: Colors.white,
                     ),
@@ -1100,9 +1097,8 @@ class _HomeScreenState extends State<HomeScreen> {
               width: 40,
               height: 40,
               decoration: BoxDecoration(
-                color: const Color(0xFF1E2139),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFF2A2D3A)),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: const Color(0xFF7C3AED)),
               ),
               child: IconButton(
                 onPressed: () {
@@ -1110,8 +1106,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 },
                 icon: const Icon(
                   Icons.notifications_outlined,
-                  color: Color(0xFF6B73FF),
-                  size: 20,
+                  color: Color(0xFF7C3AED),
+                  size: 22,
                 ),
               ),
             ),
@@ -1123,9 +1119,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
-                    color: const Color(0xFF1E2139),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFF2A2D3A)),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: const Color(0xFF7C3AED)),
                   ),
                   child: Stack(
                     children: [
@@ -1135,8 +1130,8 @@ class _HomeScreenState extends State<HomeScreen> {
                         },
                         icon: const Icon(
                           Icons.shopping_cart_outlined,
-                          color: Color(0xFF6B73FF),
-                          size: 20,
+                          color: Color(0xFF7C3AED),
+                          size: 22,
                         ),
                       ),
                       if (cart.itemCount > 0)
@@ -1362,8 +1357,22 @@ class _HomeScreenState extends State<HomeScreen> {
                         Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF1877F2),
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(14),
+                            gradient: const LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [
+                                Color(0xFF1D4ED8),
+                                Color(0xFF38BDF8),
+                              ],
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0xFF38BDF8).withOpacity(0.6),
+                                blurRadius: 18,
+                                offset: const Offset(0, 6),
+                              ),
+                            ],
                           ),
                           child: const Icon(
                             Icons.dynamic_feed,
@@ -1394,13 +1403,33 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ],
                     ),
-                    TextButton(
-                      onPressed: () => Navigator.pushNamed(context, '/social-feed'),
-                      child: const Text(
-                        'View All',
-                        style: TextStyle(
-                          color: Color(0xFF1877F2),
-                          fontWeight: FontWeight.w600,
+                    GestureDetector(
+                      onTap: () => Navigator.pushNamed(context, '/social-feed'),
+                      child: Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(14),
+                          gradient: const LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [
+                              Color(0xFF0EA5E9),
+                              Color(0xFF38BDF8),
+                            ],
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFF0EA5E9).withOpacity(0.7),
+                              blurRadius: 18,
+                              offset: const Offset(0, 6),
+                            ),
+                          ],
+                        ),
+                        child: const Icon(
+                          Icons.chat_bubble_outline,
+                          color: Colors.white,
+                          size: 20,
                         ),
                       ),
                     ),
@@ -1418,11 +1447,18 @@ class _HomeScreenState extends State<HomeScreen> {
                         width: 280,
                         margin: const EdgeInsets.only(right: 12),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF1E2139),
-                          borderRadius: BorderRadius.circular(12),
+                          color: const Color(0xFF15192B),
+                          borderRadius: BorderRadius.circular(16),
                           border: Border.all(
-                            color: const Color(0xFF2A2D3A),
+                            color: const Color(0xFF1D4ED8),
                           ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFF1D4ED8).withOpacity(0.45),
+                              blurRadius: 20,
+                              offset: const Offset(0, 10),
+                            ),
+                          ],
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -2136,21 +2172,43 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildNewBottomNavigationBar(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            Color(0x00111827),
+            Color(0xFF020617),
+          ],
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 10,
-            offset: const Offset(0, -2),
+            color: const Color(0xFF7C3AED).withOpacity(0.45),
+            blurRadius: 26,
+            offset: const Offset(0, -8),
           ),
         ],
       ),
       child: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
-        backgroundColor: const Color(0xFF1E2139),
-        selectedItemColor: const Color(0xFF6B73FF),
+        backgroundColor: const Color(0xFF020617),
+        selectedItemColor: const Color(0xFF8B5CF6),
         unselectedItemColor: Colors.white60,
         selectedFontSize: 12,
         unselectedFontSize: 10,
+        selectedIconTheme: IconThemeData(
+          color: const Color(0xFF8B5CF6),
+          size: 26,
+          shadows: [
+            BoxShadow(
+              color: const Color(0xFF8B5CF6).withOpacity(0.85),
+              blurRadius: 18,
+            ),
+          ],
+        ),
+        unselectedIconTheme: const IconThemeData(
+          color: Colors.white60,
+          size: 24,
+        ),
         currentIndex: _currentPageIndex,
         onTap: (index) {
           HapticFeedback.lightImpact();
