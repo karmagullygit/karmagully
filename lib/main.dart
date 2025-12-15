@@ -48,6 +48,7 @@ import 'screens/admin/admin_prediction_dashboard.dart';
 import 'screens/customer/addresses_screen.dart';
 import 'screens/admin/admin_user_management_screen.dart';
 import 'screens/admin/reports_management_screen.dart';
+import 'screens/admin/user_verification_screen.dart';
 import 'screens/admin/notification_settings_screen.dart' as admin_notif;
 
 void main() {
@@ -97,11 +98,15 @@ class KarmaShopApp extends StatelessWidget {
             final productProvider = Provider.of<ProductProvider>(context, listen: false);
             final orderProvider = Provider.of<OrderProvider>(context, listen: false);
             final simpleAIProvider = Provider.of<SimpleAIProvider>(context, listen: false);
+            final socialFeedProvider = Provider.of<SocialFeedProvider>(context, listen: false);
             
             // Connect SimpleAIProvider with ProductProvider for real product access
             simpleAIProvider.setProductProvider(productProvider);
             
             predictionProvider.initializeWithProviders(productProvider, orderProvider);
+            
+            // Connect SocialFeedProvider with AuthProvider for profile pictures
+            socialFeedProvider.setAuthProvider(authProvider);
             
             // Initialize Simple AI system
             final simpleAI = Provider.of<SimpleAIProvider>(context, listen: false);
@@ -150,6 +155,7 @@ class KarmaShopApp extends StatelessWidget {
               '/admin-user-management': (context) => const AdminUserManagementScreen(),
               '/admin-reports-management': (context) => const ReportsManagementScreen(),
               '/admin-notification-settings': (context) => const admin_notif.NotificationSettingsScreen(),
+              '/user-verification': (context) => const UserVerificationScreen(),
             },
           );
         },

@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/social_post.dart';
 import '../models/post_comment.dart';
 import '../models/story.dart';
+import 'auth_provider.dart';
 
 class SocialFeedProvider extends ChangeNotifier {
   List<SocialPost> _posts = [];
@@ -14,6 +15,11 @@ class SocialFeedProvider extends ChangeNotifier {
   String _currentUserId = 'user_1';
   String _currentUsername = 'You';
   String _currentUserAvatar = '👤';
+  AuthProvider? _authProvider;
+
+  void setAuthProvider(AuthProvider authProvider) {
+    _authProvider = authProvider;
+  }
 
 
   // Getters
@@ -200,12 +206,18 @@ class SocialFeedProvider extends ChangeNotifier {
     PostPrivacy privacy = PostPrivacy.public,
   }) async {
     try {
+      final currentUser = _authProvider?.currentUser;
+      final userId = currentUser?.id ?? _currentUserId;
+      final username = currentUser?.email.split('@')[0] ?? _currentUsername;
+      final userAvatar = currentUser?.profilePicture ?? _currentUserAvatar;
+      final displayName = currentUser?.name ?? 'Your Name';
+      
       final newPost = SocialPost(
         id: 'post_${DateTime.now().millisecondsSinceEpoch}',
-        userId: _currentUserId,
-        username: _currentUsername,
-        userAvatar: _currentUserAvatar,
-        userDisplayName: 'Your Name',
+        userId: userId,
+        username: username,
+        userAvatar: userAvatar,
+        userDisplayName: displayName,
         content: content,
         type: type,
         mediaUrls: mediaUrls,
@@ -684,5 +696,33 @@ class SocialFeedProvider extends ChangeNotifier {
     _postComments.remove(postId);
     notifyListeners();
     await _savePosts();
+  }
+
+  // Update user avatar in all posts
+  Future<void> updateUserAvatar(String userId, String newAvatarUrl) async {
+    _posts = _posts.map((post) {
+      if (post.userId == userId) {
+        return post.copyWith(userAvatar: newAvatarUrl);
+      }
+      return post;
+    }).toList();
+    notifyListeners();
+    await _savePosts();
+  }
+
+  // Toggle user verification status
+  Future<void> toggleUserVerification(String userId, bool isVerified) async {
+    // Update all posts by this user
+    _posts = _posts.map((post) {
+      if (post.userId == userId) {
+        return post.copyWith(isVerified: isVerified);
+      }
+      return post;
+    }).toList();
+    
+    notifyListeners();
+    await _savePosts();
+    
+    debugPrint('✓ User $userId verification status updated to: $isVerified');
   }
 }

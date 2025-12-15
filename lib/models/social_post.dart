@@ -31,6 +31,7 @@ class SocialPost {
   final bool isEdited;
   final bool isPinned;
   final bool isPromoted;
+  final bool isVerified;
   final Map<String, dynamic> metadata;
 
   SocialPost({
@@ -57,6 +58,7 @@ class SocialPost {
     this.isEdited = false,
     this.isPinned = false,
     this.isPromoted = false,
+    this.isVerified = false,
     this.metadata = const {},
   });
 
@@ -125,6 +127,7 @@ class SocialPost {
     bool? isEdited,
     bool? isPinned,
     bool? isPromoted,
+    bool? isVerified,
     Map<String, dynamic>? metadata,
   }) {
     return SocialPost(
@@ -151,6 +154,7 @@ class SocialPost {
       isEdited: isEdited ?? this.isEdited,
       isPinned: isPinned ?? this.isPinned,
       isPromoted: isPromoted ?? this.isPromoted,
+      isVerified: isVerified ?? this.isVerified,
       metadata: metadata ?? this.metadata,
     );
   }
@@ -181,6 +185,7 @@ class SocialPost {
       'isEdited': isEdited,
       'isPinned': isPinned,
       'isPromoted': isPromoted,
+      'isVerified': isVerified,
       'metadata': metadata,
     };
   }
@@ -216,6 +221,7 @@ class SocialPost {
       isEdited: json['isEdited'] ?? false,
       isPinned: json['isPinned'] ?? false,
       isPromoted: json['isPromoted'] ?? false,
+      isVerified: json['isVerified'] ?? false,
       metadata: Map<String, dynamic>.from(json['metadata'] ?? {}),
     );
   }

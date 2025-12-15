@@ -19,6 +19,7 @@ migrate_working_dir/
 **/credentials.json
 **/secrets.dart
 **/secure_credentials.dart
+**/admin_config.dart
 test_whatsapp.dart
 
 # IntelliJ related

@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import '../models/user.dart';
+import '../config/admin_config.dart';
 
 class AuthProvider with ChangeNotifier {
   User? _currentUser;
@@ -13,22 +14,27 @@ class AuthProvider with ChangeNotifier {
     // Simulate API call
     await Future.delayed(const Duration(seconds: 1));
     
-    // Mock authentication
-    if (email == 'admin@karma.com' && password == 'admin123') {
+    // Check if admin credentials exist in AdminConfig
+    final adminCreds = AdminConfig.getAdminCredentials(email);
+    if (adminCreds != null && adminCreds['password'] == password) {
       _currentUser = User(
-        id: '1',
-        name: 'Admin User',
+        id: adminCreds['id'],
+        name: adminCreds['name'],
         email: email,
-        phone: '+1234567890',
-        address: 'Admin Address',
+        phone: adminCreds['phone'],
+        address: 'KarmaGully HQ',
         role: UserRole.admin,
         createdAt: DateTime.now(),
-        karmaId: 'karma10000001',
+        karmaId: adminCreds['karmaId'],
+        isSuperAdmin: AdminConfig.isSuperAdmin(email),
       );
       _isLoggedIn = true;
       notifyListeners();
       return true;
-    } else if (email == 'user@karma.com' && password == 'user123') {
+    }
+    
+    // Regular customer login
+    if (email == 'user@karma.com' && password == 'user123') {
       _currentUser = User(
         id: '2',
         name: 'Customer User',

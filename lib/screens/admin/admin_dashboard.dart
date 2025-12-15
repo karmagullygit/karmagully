@@ -274,6 +274,14 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 ),
                 const SizedBox(height: 12),
                 _buildManagementTile(
+                  'User Verification',
+                  'Verify users - Add or remove blue checkmarks',
+                  Icons.verified_user,
+                  const Color(0xFF1D9BF0),
+                  () => Navigator.pushNamed(context, '/user-verification'),
+                ),
+                const SizedBox(height: 12),
+                _buildManagementTile(
                   'Reports Management',
                   'Review customer reports and moderate content',
                   Icons.flag,

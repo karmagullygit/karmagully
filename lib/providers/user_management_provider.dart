@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import '../models/user.dart';
+import '../config/admin_config.dart';
 
 class UserManagementProvider with ChangeNotifier {
   List<User> _users = [];
@@ -39,14 +40,37 @@ class UserManagementProvider with ChangeNotifier {
   void _loadSampleUsers() {
     _users = [
       User(
-        id: '1',
-        name: 'Admin User',
-        email: 'admin@karma.com',
+        id: 'admin_001',
+        name: 'KarmaGully Admin',
+        email: 'karmagully0@gmail.com',
         phone: '+1234567890',
-        address: 'Admin Address',
+        address: 'KarmaGully HQ',
         role: UserRole.admin,
         createdAt: DateTime.now().subtract(const Duration(days: 365)),
         karmaId: 'karma10000001',
+        isSuperAdmin: true,
+      ),
+      User(
+        id: 'admin_002',
+        name: 'KarmaGully Contact',
+        email: 'contactkarmagully@gmail.com',
+        phone: '+1234567891',
+        address: 'KarmaGully HQ',
+        role: UserRole.admin,
+        createdAt: DateTime.now().subtract(const Duration(days: 365)),
+        karmaId: 'karma10000002',
+        isSuperAdmin: true,
+      ),
+      User(
+        id: 'admin_003',
+        name: 'Admin Panel',
+        email: 'admin@karma.com',
+        phone: '+1234567892',
+        address: 'Remote',
+        role: UserRole.admin,
+        createdAt: DateTime.now().subtract(const Duration(days: 365)),
+        karmaId: 'karma10000003',
+        isSuperAdmin: false,
       ),
       User(
         id: '2',
@@ -235,5 +259,85 @@ class UserManagementProvider with ChangeNotifier {
       await _saveUsers();
       notifyListeners();
     }
+  }
+
+  // Promote user to admin (only super admins can do this)
+  Future<bool> promoteToAdmin(String userId, String requestingAdminId) async {
+    // Verify requesting user is super admin
+    final requestingUser = _users.firstWhere(
+      (u) => u.id == requestingAdminId,
+      orElse: () => User(
+        id: '',
+        name: '',
+        email: '',
+        phone: '',
+        address: '',
+        role: UserRole.customer,
+        createdAt: DateTime.now(),
+        karmaId: '',
+      ),
+    );
+    
+    if (requestingUser.role != UserRole.admin || !requestingUser.isSuperAdmin) {
+      return false; // Not authorized - must be super admin
+    }
+
+    // Find and update target user
+    final index = _users.indexWhere((u) => u.id == userId);
+    if (index != -1) {
+      _users[index] = _users[index].copyWith(
+        role: UserRole.admin,
+        isSuperAdmin: false, // New admins are regular admins by default
+      );
+      await _saveUsers();
+      notifyListeners();
+      return true;
+    }
+    return false;
+  }
+
+  // Demote admin to customer (only super admins can do this)
+  Future<bool> demoteFromAdmin(String userId, String requestingAdminId) async {
+    // Verify requesting user is super admin
+    final requestingUser = _users.firstWhere(
+      (u) => u.id == requestingAdminId,
+      orElse: () => User(
+        id: '',
+        name: '',
+        email: '',
+        phone: '',
+        address: '',
+        role: UserRole.customer,
+        createdAt: DateTime.now(),
+        karmaId: '',
+      ),
+    );
+    
+    if (requestingUser.role != UserRole.admin || !requestingUser.isSuperAdmin) {
+      return false; // Not authorized - must be super admin
+    }
+
+    // Prevent demoting self or other super admins
+    if (userId == requestingAdminId) {
+      return false;
+    }
+
+    // Find target user
+    final targetIndex = _users.indexWhere((u) => u.id == userId);
+    if (targetIndex != -1) {
+      // Prevent demoting super admins
+      if (_users[targetIndex].isSuperAdmin) {
+        return false;
+      }
+      
+      _users[targetIndex] = _users[targetIndex].copyWith(
+        role: UserRole.customer,
+        isSuperAdmin: false,
+      );
+      await _saveUsers();
+      notifyListeners();
+      return true;
+    }
+    return false;
   }
 }

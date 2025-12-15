@@ -15,6 +15,7 @@ import 'create_post_screen.dart';
 import 'comments_screen.dart';
 import 'reels_viewer_screen.dart';
 import 'create_story_screen.dart';
+import '../customer/user_profile_screen.dart';
 
 // Video Player Widget for Feed Posts
 class FeedVideoPlayer extends StatefulWidget {
@@ -395,19 +396,38 @@ class SocialFeedScreen extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.end,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Row(
-                          children: [
-                            Flexible(
-                              child: Text(
-                                story['name'] as String,
-                                style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
-                                overflow: TextOverflow.ellipsis,
+                        GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => UserProfileScreen(
+                                  userId: story['userId'] ?? 'unknown',
+                                  username: story['username'] ?? story['name'] ?? 'Unknown',
+                                  displayName: story['name'] ?? 'Unknown',
+                                  avatar: (story['name'] ?? 'Unknown').isNotEmpty
+                                      ? (story['name'] ?? 'Unknown')[0].toUpperCase()
+                                      : '?',
+                                  isVerified: story['isVerified'] ?? false,
+                                  profilePictureUrl: story['avatar'],
+                                ),
                               ),
-                            ),
-                            const SizedBox(width: 4),
-                            if (story['type'] == 'video')
-                              const Icon(Icons.play_circle_fill, color: Colors.white, size: 16),
-                          ],
+                            );
+                          },
+                          child: Row(
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  story['name'] as String,
+                                  style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              if (story['type'] == 'video')
+                                const Icon(Icons.play_circle_fill, color: Colors.white, size: 16),
+                            ],
+                          ),
                         ),
                       ],
                     ),
@@ -926,7 +946,6 @@ class SocialFeedScreen extends StatelessWidget {
     String? selectedReason;
     final descriptionController = TextEditingController();
     final authProvider = context.read<AuthProvider>();
-    final userManagement = context.read<UserManagementProvider>();
     final reportProvider = context.read<ReportProvider>();
     
     final currentUser = authProvider.currentUser;
@@ -1161,14 +1180,38 @@ class SocialFeedScreen extends StatelessWidget {
                       padding: const EdgeInsets.all(16),
                       child: Row(
                         children: [
-                          CircleAvatar(
-                            radius: 20,
-                            backgroundColor: const Color(0xFF6B73FF),
-                            child: Text(
-                              (post.userDisplayName ?? post.username).isNotEmpty
-                                  ? (post.userDisplayName ?? post.username)[0].toUpperCase()
-                                  : '?',
-                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                          GestureDetector(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => UserProfileScreen(
+                                    userId: post.userId,
+                                    username: post.username,
+                                    displayName: post.userDisplayName ?? post.username,
+                                    avatar: (post.userDisplayName ?? post.username).isNotEmpty
+                                        ? (post.userDisplayName ?? post.username)[0].toUpperCase()
+                                        : '?',
+                                    isVerified: post.isVerified,
+                                    profilePictureUrl: post.userAvatar,
+                                  ),
+                                ),
+                              );
+                            },
+                            child: CircleAvatar(
+                              radius: 20,
+                              backgroundColor: const Color(0xFF6B73FF),
+                              backgroundImage: (post.userAvatar.startsWith('http') || post.userAvatar.contains('/'))
+                                  ? (post.userAvatar.startsWith('http')
+                                      ? NetworkImage(post.userAvatar) as ImageProvider
+                                      : FileImage(File(post.userAvatar)))
+                                  : null,
+                              child: (post.userAvatar.startsWith('http') || post.userAvatar.contains('/'))
+                                  ? null
+                                  : Text(
+                                      post.userAvatar,
+                                      style: const TextStyle(fontSize: 16),
+                                    ),
                             ),
                           ),
                           const SizedBox(width: 12),
@@ -1176,9 +1219,24 @@ class SocialFeedScreen extends StatelessWidget {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
-                                  post.userDisplayName ?? post.username,
-                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.white),
+                                Row(
+                                  children: [
+                                    Flexible(
+                                      child: Text(
+                                        post.userDisplayName ?? post.username,
+                                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.white),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                    if (post.isVerified) ...[
+                                      const SizedBox(width: 4),
+                                      const Icon(
+                                        Icons.verified,
+                                        color: Color(0xFF1D9BF0),
+                                        size: 16,
+                                      ),
+                                    ],
+                                  ],
                                 ),
                                 Text(
                                   _formatDate(post.createdAt),

@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:io';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -20,6 +22,7 @@ import 'profile_screen.dart';
 import 'wishlist_screen.dart';
 import 'category_products_screen.dart';
 import 'product_detail_screen.dart';
+import 'user_profile_screen.dart';
 import '../social/social_feed_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -106,10 +109,11 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildHomeContent() {
-    return Stack(
-      children: [
-        // Top-right gradient overlay like in the reference image
-        Positioned(
+    return EmojiPetalRain(
+      child: Stack(
+        children: [
+          // Top-right gradient overlay like in the reference image
+          Positioned(
           top: 0,
           right: 0,
           child: Container(
@@ -132,17 +136,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         // Dark base background
         Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                Color(0xFF0A0E1A), // Dark navy
-                Color(0xFF1A1B2E), // Slightly lighter
-                Color(0xFF16213E), // Blue tint
-              ],
-            ),
-          ),
+          color: const Color(0xFF0A0E27),
           child: SafeArea(
             child: Consumer<FeatureSettingsProvider>(
               builder: (context, featureSettings, child) {
@@ -195,22 +189,13 @@ class _HomeScreenState extends State<HomeScreen> {
           child: ChatBotWidget(),
         ),
       ],
+      ),
     );
   }
 
   Widget _buildSearchContent() {
     return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-            Color(0xFF0A0E1A), // Dark navy
-            Color(0xFF1A1B2E), // Slightly lighter
-            Color(0xFF16213E), // Blue tint
-          ],
-        ),
-      ),
+      color: const Color(0xFF0A0E27),
       child: SafeArea(
         child: CustomScrollView(
           slivers: [
@@ -229,7 +214,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return Consumer<ThemeProvider>(
       builder: (context, themeProvider, child) {
         return Scaffold(
-          backgroundColor: const Color(0xFF0A0E1A), // Dark background base
+          backgroundColor: const Color(0xFF0A0E27),
           body: _getCurrentScreenContent(),
           // Remove conflicting FloatingActionButton - chatbot has its own
           // floatingActionButton: _buildFloatingCart(context, true),
@@ -730,7 +715,7 @@ class _HomeScreenState extends State<HomeScreen> {
           return Column(
                 children: [
                   Container(
-                    height: 260,
+                    height: 180,
                     margin: const EdgeInsets.only(bottom: 12, top: 0),
                     child: PageView.builder(
                       controller: _carouselController,
@@ -742,9 +727,25 @@ class _HomeScreenState extends State<HomeScreen> {
                       itemCount: banners.length,
                       itemBuilder: (context, index) {
                         final banner = banners[index];
-                        return Container(
-                          margin: const EdgeInsets.symmetric(horizontal: 8),
-                          decoration: BoxDecoration(
+                        return AnimatedBuilder(
+                          animation: _carouselController!,
+                          builder: (context, child) {
+                            double value = 1.0;
+                            if (_carouselController!.position.haveDimensions) {
+                              value = _carouselController!.page! - index;
+                              value = (1 - (value.abs() * 0.3)).clamp(0.7, 1.0);
+                            }
+                            return Transform.scale(
+                              scale: value,
+                              child: Opacity(
+                                opacity: value,
+                                child: child,
+                              ),
+                            );
+                          },
+                          child: Container(
+                            margin: const EdgeInsets.symmetric(horizontal: 8),
+                            decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(16),
                             gradient: const LinearGradient(
                               begin: Alignment.topLeft,
@@ -836,6 +837,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               ],
                             ),
                           ),
+                          ),
                         );
                       },
                     ),
@@ -866,178 +868,6 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
-
-  Widget _buildCarouselSection_DUPLICATE_TO_DELETE(BuildContext context, bool isDarkMode) {
-    return SliverToBoxAdapter(
-      child: Consumer<AdvertisementProvider>(
-        builder: (context, adProvider, child) {
-          final banners = adProvider.carouselBanners;
-          if (banners.isEmpty) {
-            return Container(
-              height: 200,
-              margin: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: const Color(0xFF1E2139),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xFF2A2D3A)),
-              ),
-              child: const Center(
-                child: Text(
-                  'No banners available',
-                  style: TextStyle(color: Colors.white70),
-                ),
-              ),
-            );
-          }
-
-          // Initialize controller and start auto-scroll
-          if (_carouselController == null) {
-            _carouselController = PageController(initialPage: 0, viewportFraction: 0.92);
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              _startCarouselAutoScroll(banners.length);
-            });
-          }
-
-          return Column(
-            children: [
-              Container(
-                height: 220,
-                margin: const EdgeInsets.only(bottom: 12),
-                child: PageView.builder(
-                  controller: _carouselController,
-                  onPageChanged: (index) {
-                    setState(() {
-                      _currentCarouselPage = index;
-                    });
-                  },
-                  itemCount: banners.length,
-                  itemBuilder: (context, index) {
-                    final banner = banners[index];
-                    return Container(
-                      margin: const EdgeInsets.symmetric(horizontal: 8),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(16),
-                        gradient: const LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [
-                            Color(0xFF6B46C1),
-                            Color(0xFF9333EA),
-                            Color(0xFFEC4899),
-                          ],
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: const Color(0xFF6B73FF).withOpacity(0.2),
-                            blurRadius: 15,
-                            offset: const Offset(0, 5),
-                          ),
-                        ],
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(16),
-                        child: Stack(
-                          children: [
-                            if (banner.imageUrl.isNotEmpty)
-                              Image.network(
-                                banner.imageUrl,
-                                width: double.infinity,
-                                height: double.infinity,
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) {
-                                  return Container(
-                                    color: const Color(0xFF1E2139),
-                                    child: const Center(
-                                      child: Icon(
-                                        Icons.image,
-                                        color: Colors.white54,
-                                        size: 50,
-                                      ),
-                                    ),
-                                  );
-                                },
-                              ),
-                            Container(
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                  colors: [
-                                    Colors.black.withOpacity(0.4),
-                                    Colors.transparent,
-                                    Colors.black.withOpacity(0.5),
-                                  ],
-                                ),
-                              ),
-                            ),
-                            Positioned(
-                              bottom: 20,
-                              left: 20,
-                              right: 20,
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFFFF0B5A),
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: const Text(
-                                      '🔥 HOT DEAL',
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    banner.title,
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-              // Page indicators (dots)
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(
-                  banners.length,
-                  (index) => AnimatedContainer(
-                    duration: const Duration(milliseconds: 300),
-                    margin: const EdgeInsets.symmetric(horizontal: 4),
-                    width: _currentCarouselPage == index ? 24 : 8,
-                    height: 8,
-                    decoration: BoxDecoration(
-                      color: _currentCarouselPage == index
-                          ? const Color(0xFF6B73FF)
-                          : const Color(0xFF2A2D3A),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 8),
-            ],
-          );
-        },
-      ),
-    );
-  }
-
 
   // Add placeholder methods to prevent compilation errors
   Widget _buildAppBar(BuildContext context, bool isDarkMode) {
@@ -1437,17 +1267,29 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 const SizedBox(height: 16),
                 SizedBox(
-                  height: 180,
+                  height: 160,
                   child: ListView.builder(
                     scrollDirection: Axis.horizontal,
                     itemCount: posts.length,
                     itemBuilder: (context, index) {
                       final post = posts[index];
-                      return Container(
+                      return TweenAnimationBuilder<double>(
+                        duration: Duration(milliseconds: 300 + (index * 100)),
+                        tween: Tween(begin: 0.0, end: 1.0),
+                        builder: (context, value, child) {
+                          return Transform.translate(
+                            offset: Offset(0, 20 * (1 - value)),
+                            child: Opacity(
+                              opacity: value,
+                              child: child,
+                            ),
+                          );
+                        },
+                        child: Container(
                         width: 280,
                         margin: const EdgeInsets.only(right: 12),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF15192B),
+                          color: const Color(0xFF0A0E27),
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(
                             color: const Color(0xFF1D4ED8),
@@ -1468,17 +1310,79 @@ class _HomeScreenState extends State<HomeScreen> {
                               padding: const EdgeInsets.all(12),
                               child: Row(
                                 children: [
-                                  Container(
-                                    width: 32,
-                                    height: 32,
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFF1877F2),
-                                      borderRadius: BorderRadius.circular(16),
-                                    ),
-                                    child: Center(
-                                      child: Text(
-                                        post.userAvatar,
-                                        style: const TextStyle(fontSize: 16),
+                                  GestureDetector(
+                                    onTap: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => UserProfileScreen(
+                                            userId: post.userId,
+                                            username: post.username,
+                                            displayName: post.userDisplayName ?? post.username,
+                                            avatar: post.userAvatar,
+                                            isVerified: post.isVerified,
+                                            profilePictureUrl: post.userAvatar,
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                    child: Container(
+                                      width: 32,
+                                      height: 32,
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFF1877F2),
+                                        borderRadius: BorderRadius.circular(16),
+                                      ),
+                                      child: ClipRRect(
+                                        borderRadius: BorderRadius.circular(16),
+                                        child: post.userAvatar.startsWith('http') || post.userAvatar.contains('/')
+                                            ? Builder(builder: (context) {
+                                                try {
+                                                  if (post.userAvatar.startsWith('http')) {
+                                                    return Image.network(
+                                                      post.userAvatar,
+                                                      width: 32,
+                                                      height: 32,
+                                                      fit: BoxFit.cover,
+                                                      errorBuilder: (context, error, stack) {
+                                                        return Center(
+                                                          child: Text(
+                                                            post.userAvatar,
+                                                            style: const TextStyle(fontSize: 16),
+                                                          ),
+                                                        );
+                                                      },
+                                                    );
+                                                  }
+                                                  return Image.file(
+                                                    File(post.userAvatar),
+                                                    width: 32,
+                                                    height: 32,
+                                                    fit: BoxFit.cover,
+                                                    errorBuilder: (context, error, stack) {
+                                                      return Center(
+                                                        child: Text(
+                                                          post.userAvatar,
+                                                          style: const TextStyle(fontSize: 16),
+                                                        ),
+                                                      );
+                                                    },
+                                                  );
+                                                } catch (e) {
+                                                  return Center(
+                                                    child: Text(
+                                                      post.userAvatar,
+                                                      style: const TextStyle(fontSize: 16),
+                                                    ),
+                                                  );
+                                                }
+                                              })
+                                            : Center(
+                                                child: Text(
+                                                  post.userAvatar,
+                                                  style: const TextStyle(fontSize: 16),
+                                                ),
+                                              ),
                                       ),
                                     ),
                                   ),
@@ -1487,13 +1391,28 @@ class _HomeScreenState extends State<HomeScreen> {
                                     child: Column(
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
-                                        Text(
-                                          post.userDisplayName ?? post.username,
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 14,
-                                            color: Colors.white,
-                                          ),
+                                        Row(
+                                          children: [
+                                            Flexible(
+                                              child: Text(
+                                                post.userDisplayName ?? post.username,
+                                                style: const TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 14,
+                                                  color: Colors.white,
+                                                ),
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ),
+                                            if (post.isVerified) ...[
+                                              const SizedBox(width: 4),
+                                              const Icon(
+                                                Icons.verified,
+                                                color: Color(0xFF1D9BF0),
+                                                size: 16,
+                                              ),
+                                            ],
+                                          ],
                                         ),
                                         Text(
                                           post.formattedDate,
@@ -1509,19 +1428,21 @@ class _HomeScreenState extends State<HomeScreen> {
                               ),
                             ),
                             // Post content
-                            Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 12),
-                              child: Text(
-                                post.content,
-                                style: const TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.white,
+                            Flexible(
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 12),
+                                child: Text(
+                                  post.content,
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    color: Colors.white,
+                                  ),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
-                                maxLines: 3,
-                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
-                            const Spacer(),
+                            const SizedBox(height: 8),
                             // Post stats
                             Padding(
                               padding: const EdgeInsets.all(12),
@@ -1558,6 +1479,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               ),
                             ),
                           ],
+                        ),
                         ),
                       );
                     },
@@ -2687,4 +2609,124 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
     // Copy implementation from main HomeScreen
     return const SliverToBoxAdapter(child: SizedBox(height: 20));
   }
+}
+
+// Emoji Petal Rain Widget
+class EmojiPetalRain extends StatefulWidget {
+  final Widget child;
+  const EmojiPetalRain({super.key, required this.child});
+
+  @override
+  State<EmojiPetalRain> createState() => _EmojiPetalRainState();
+}
+
+class _EmojiPetalRainState extends State<EmojiPetalRain>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  final Random _random = Random();
+  final int petalCount = 25;
+
+  late List<_EmojiPetal> petals;
+
+  @override
+  void initState() {
+    super.initState();
+
+    petals = List.generate(
+      petalCount,
+      (index) => _EmojiPetal(
+        x: _random.nextDouble() * 400,
+        y: _random.nextDouble() * -600,
+        speed: 1 + _random.nextDouble() * 2,
+        size: 18 + _random.nextDouble() * 12,
+        angle: _random.nextDouble() * pi,
+        emoji: "🌸",
+      ),
+    );
+
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 20),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        AnimatedBuilder(
+          animation: _controller,
+          builder: (context, child) {
+            return CustomPaint(
+              painter: _EmojiPetalPainter(petals),
+              size: Size.infinite,
+            );
+          },
+        ),
+        widget.child,
+      ],
+    );
+  }
+}
+
+class _EmojiPetal {
+  double x;
+  double y;
+  double speed;
+  double size;
+  double angle;
+  String emoji;
+
+  _EmojiPetal({
+    required this.x,
+    required this.y,
+    required this.speed,
+    required this.size,
+    required this.angle,
+    required this.emoji,
+  });
+}
+
+class _EmojiPetalPainter extends CustomPainter {
+  final List<_EmojiPetal> petals;
+  final Random _random = Random();
+
+  _EmojiPetalPainter(this.petals);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    for (var petal in petals) {
+      // Move downward
+      petal.y += petal.speed;
+
+      // Left-right sway
+      petal.x += sin(petal.y / 40) * 1.5;
+
+      // Reset petal above screen
+      if (petal.y > size.height) {
+        petal.y = -20;
+        petal.x = _random.nextDouble() * size.width;
+      }
+
+      TextPainter tp = TextPainter(
+        text: TextSpan(
+          text: petal.emoji,
+          style: TextStyle(fontSize: petal.size),
+        ),
+        textDirection: TextDirection.ltr,
+      );
+
+      tp.layout();
+      tp.paint(canvas, Offset(petal.x, petal.y));
+    }
+  }
+
+  @override
+  bool shouldRepaint(_) => true;
 }

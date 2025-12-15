@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../providers/user_management_provider.dart';
 import '../../providers/social_feed_provider.dart';
+import '../../providers/auth_provider.dart';
 import '../../models/user.dart';
 import '../../models/social_post.dart';
 
@@ -176,6 +177,7 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> w
 
   Widget _buildUserCard(User user, Map<String, dynamic> stats, int postCount, SocialFeedProvider feedProvider) {
     final isAdmin = user.role == UserRole.admin;
+    final currentUser = context.read<AuthProvider>().currentUser;
     
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -385,6 +387,30 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> w
                       ),
                     ),
                   ),
+                  // Only show promote/demote for super admins
+                  if (currentUser?.isSuperAdmin ?? false) ...[
+                    Container(
+                      width: 1,
+                      height: 40,
+                      color: Colors.white.withOpacity(0.1),
+                    ),
+                    Expanded(
+                      child: TextButton.icon(
+                        onPressed: () => isAdmin 
+                            ? _showDemoteAdminDialog(context, user)
+                            : _showPromoteToAdminDialog(context, user),
+                        icon: Icon(
+                          isAdmin ? Icons.arrow_downward : Icons.admin_panel_settings,
+                          size: 18,
+                        ),
+                        label: Text(isAdmin ? 'Demote' : 'Make Admin'),
+                        style: TextButton.styleFrom(
+                          foregroundColor: isAdmin ? Colors.orange : Colors.purple,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
+                      ),
+                    ),
+                  ],
                   Container(
                     width: 1,
                     height: 40,
@@ -763,6 +789,178 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> w
         ),
       );
     }
+  }
+
+  void _showPromoteToAdminDialog(BuildContext context, User user) {
+    final authProvider = context.read<AuthProvider>();
+    final userProvider = context.read<UserManagementProvider>();
+    final currentUser = authProvider.currentUser;
+
+    if (currentUser == null || currentUser.role != UserRole.admin || !currentUser.isSuperAdmin) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Only super admins can promote users'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1C1F26),
+        title: Row(
+          children: [
+            const Icon(Icons.admin_panel_settings, color: Colors.purple),
+            const SizedBox(width: 12),
+            const Text('Promote to Admin', style: TextStyle(color: Colors.white)),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Are you sure you want to promote ${user.name} to admin?',
+              style: const TextStyle(color: Colors.white),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.purple.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.purple.withOpacity(0.3)),
+              ),
+              child: const Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Admin Permissions:',
+                    style: TextStyle(
+                      color: Colors.purple,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  SizedBox(height: 8),
+                  Text('• Access admin dashboard', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                  Text('• Manage users', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                  Text('• View reports', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                  Text('• Cannot promote users to admin', style: TextStyle(color: Colors.orange, fontSize: 12)),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final success = await userProvider.promoteToAdmin(user.id, currentUser.id);
+              if (context.mounted) {
+                Navigator.pop(context);
+                if (success) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('${user.name} is now an admin'),
+                      backgroundColor: Colors.purple,
+                    ),
+                  );
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Failed to promote user'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.purple),
+            child: const Text('Make Admin'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showDemoteAdminDialog(BuildContext context, User user) {
+    final authProvider = context.read<AuthProvider>();
+    final userProvider = context.read<UserManagementProvider>();
+    final currentUser = authProvider.currentUser;
+
+    if (currentUser == null || currentUser.role != UserRole.admin || !currentUser.isSuperAdmin) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Only super admins can demote other admins'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    if (currentUser.id == user.id) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('You cannot demote yourself'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1C1F26),
+        title: Row(
+          children: [
+            const Icon(Icons.arrow_downward, color: Colors.orange),
+            const SizedBox(width: 12),
+            const Text('Demote Admin', style: TextStyle(color: Colors.white)),
+          ],
+        ),
+        content: Text(
+          'Are you sure you want to demote ${user.name} from admin to customer?\n\nThey will lose all admin privileges.',
+          style: const TextStyle(color: Colors.white),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final success = await userProvider.demoteFromAdmin(user.id, currentUser.id);
+              if (context.mounted) {
+                Navigator.pop(context);
+                if (success) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('${user.name} has been demoted to customer'),
+                      backgroundColor: Colors.orange,
+                    ),
+                  );
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Failed to demote admin'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
+            child: const Text('Demote'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _deletePost(BuildContext context, String postId, SocialFeedProvider feedProvider) {

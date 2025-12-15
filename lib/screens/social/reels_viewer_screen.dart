@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import '../../providers/report_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../models/post_report.dart';
+import '../customer/user_profile_screen.dart';
 
 class ReelsViewerScreen extends StatefulWidget {
   final List<Map<String, dynamic>> stories;
@@ -621,35 +622,54 @@ class _ReelsViewerScreenState extends State<ReelsViewerScreen> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Row(
-                        children: [
-                          CircleAvatar(
-                            radius: 18,
-                            backgroundImage: NetworkImage(story['image'] ?? ''),
-                          ),
-                          const SizedBox(width: 8),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                story['name'] ?? '',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14,
-                                ),
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => UserProfileScreen(
+                                userId: story['userId'] ?? 'unknown',
+                                username: story['username'] ?? story['name'] ?? 'Unknown',
+                                displayName: story['name'] ?? 'Unknown',
+                                avatar: (story['name'] ?? 'Unknown').isNotEmpty
+                                    ? (story['name'] ?? 'Unknown')[0].toUpperCase()
+                                    : '?',
+                                isVerified: story['isVerified'] ?? false,
+                                profilePictureUrl: story['avatar'],
                               ),
-                              Text(
-                                story['time'] ?? '',
-                                style: const TextStyle(
-                                  color: Colors.white70,
-                                  fontSize: 11,
+                            ),
+                          );
+                        },
+                        child: Row(
+                          children: [
+                            CircleAvatar(
+                              radius: 18,
+                              backgroundImage: NetworkImage(story['image'] ?? ''),
+                            ),
+                            const SizedBox(width: 8),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  story['name'] ?? '',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14,
+                                  ),
                                 ),
-                              ),
-                            ],
-                          ),
-                        ],
+                                Text(
+                                  story['time'] ?? '',
+                                  style: const TextStyle(
+                                    color: Colors.white70,
+                                    fontSize: 11,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
                       IconButton(
                         icon: const Icon(Icons.close, color: Colors.white),

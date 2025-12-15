@@ -1,8 +1,10 @@
+import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/social_feed_provider.dart';
+import '../../providers/auth_provider.dart';
 import '../../models/social_post.dart';
 
 class CreatePostScreen extends StatefulWidget {
@@ -74,40 +76,93 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // User info section
-            Row(
-              children: [
-                Container(
-                  width: 50,
-                  height: 50,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF1877F2),
-                    borderRadius: BorderRadius.circular(25),
-                  ),
-                  child: const Center(
-                    child: Text(
-                      '👤',
-                      style: TextStyle(fontSize: 24),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Your Name',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
+            Consumer<AuthProvider>(
+              builder: (context, authProvider, child) {
+                final currentUser = authProvider.currentUser;
+                final profilePic = currentUser?.profilePicture;
+                final userName = currentUser?.name ?? 'Your Name';
+                
+                return Row(
+                  children: [
+                    Container(
+                      width: 50,
+                      height: 50,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1877F2),
+                        borderRadius: BorderRadius.circular(25),
                       ),
-                      const SizedBox(height: 4),
-                      _buildPrivacySelector(),
-                    ],
-                  ),
-                ),
-              ],
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(25),
+                        child: profilePic != null && profilePic.isNotEmpty
+                            ? Builder(builder: (context) {
+                                try {
+                                  if (profilePic.startsWith('http')) {
+                                    return Image.network(
+                                      profilePic,
+                                      width: 50,
+                                      height: 50,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (context, error, stack) {
+                                        return const Center(
+                                          child: Text(
+                                            '👤',
+                                            style: TextStyle(fontSize: 24),
+                                          ),
+                                        );
+                                      },
+                                    );
+                                  }
+                                  return Image.file(
+                                    File(profilePic),
+                                    width: 50,
+                                    height: 50,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (context, error, stack) {
+                                      return const Center(
+                                        child: Text(
+                                          '👤',
+                                          style: TextStyle(fontSize: 24),
+                                        ),
+                                      );
+                                    },
+                                  );
+                                } catch (e) {
+                                  return const Center(
+                                    child: Text(
+                                      '👤',
+                                      style: TextStyle(fontSize: 24),
+                                    ),
+                                  );
+                                }
+                              })
+                            : const Center(
+                                child: Text(
+                                  '👤',
+                                  style: TextStyle(fontSize: 24),
+                                ),
+                              ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            userName,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          _buildPrivacySelector(),
+                        ],
+                      ),
+                    ),
+                  ],
+                );
+              },
             ),
 
             const SizedBox(height: 20),
@@ -137,9 +192,10 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
             const SizedBox(height: 20),
 
             // Media section (if applicable)
-            if (_selectedType != PostType.text) _buildMediaSection(),
-
-            const SizedBox(height: 20),
+            if (_selectedType != PostType.text) ...[
+              _buildMediaSection(),
+              const SizedBox(height: 20),
+            ],
 
             // Location input
             TextField(

@@ -12,6 +12,7 @@ class User {
   final bool isBanned;
   final String? banReason;
   final DateTime? bannedAt;
+  final bool isSuperAdmin; // Can promote other users to admin
 
   User({
     required this.id,
@@ -27,6 +28,7 @@ class User {
     this.isBanned = false,
     this.banReason,
     this.bannedAt,
+    this.isSuperAdmin = false,
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
@@ -47,6 +49,7 @@ class User {
       isBanned: json['isBanned'] ?? false,
       banReason: json['banReason'],
       bannedAt: json['bannedAt'] != null ? DateTime.parse(json['bannedAt']) : null,
+      isSuperAdmin: json['isSuperAdmin'] ?? false,
     );
   }
 
@@ -65,6 +68,7 @@ class User {
       'isBanned': isBanned,
       'banReason': banReason,
       'bannedAt': bannedAt?.toIso8601String(),
+      'isSuperAdmin': isSuperAdmin,
     };
   }
 
@@ -82,6 +86,7 @@ class User {
     bool? isBanned,
     String? banReason,
     DateTime? bannedAt,
+    bool? isSuperAdmin,
   }) {
     return User(
       id: id ?? this.id,
@@ -97,6 +102,7 @@ class User {
       isBanned: isBanned ?? this.isBanned,
       banReason: banReason ?? this.banReason,
       bannedAt: bannedAt ?? this.bannedAt,
+      isSuperAdmin: isSuperAdmin ?? this.isSuperAdmin,
     );
   }
 }

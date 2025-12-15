@@ -127,11 +127,11 @@ class ThemeProvider extends ChangeNotifier {
         brightness: Brightness.dark,
         primary: const Color(0xFF818CF8),
         secondary: const Color(0xFF34D399),
-        surface: const Color(0xFF1F2937),
-        background: const Color(0xFF111827),
+        surface: const Color(0xFF0A0E27),
+        background: const Color(0xFF0A0E27),
       ),
       appBarTheme: const AppBarTheme(
-        backgroundColor: Color(0xFF1F2937),
+        backgroundColor: Color(0xFF0A0E27),
         foregroundColor: Colors.white,
         elevation: 0,
         centerTitle: false,
@@ -143,7 +143,7 @@ class ThemeProvider extends ChangeNotifier {
       ),
       cardTheme: CardThemeData(
         elevation: 0,
-        color: const Color(0xFF1F2937),
+        color: const Color(0xFF0A0E27),
         shadowColor: Colors.black.withOpacity(0.3),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
@@ -166,10 +166,10 @@ class ThemeProvider extends ChangeNotifier {
           borderSide: BorderSide.none,
         ),
         filled: true,
-        fillColor: const Color(0xFF374151),
+        fillColor: const Color(0xFF1A1F3A),
         contentPadding: const EdgeInsets.all(16),
       ),
-      scaffoldBackgroundColor: const Color(0xFF111827),
+      scaffoldBackgroundColor: const Color(0xFF0A0E27),
       textTheme: const TextTheme(
         headlineLarge: TextStyle(
           fontSize: 32,
