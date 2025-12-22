@@ -20,6 +20,8 @@ migrate_working_dir/
 **/secrets.dart
 **/secure_credentials.dart
 **/admin_config.dart
+**/secure_config.dart
+lib/config/secure_config.dart
 test_whatsapp.dart
 
 # IntelliJ related
