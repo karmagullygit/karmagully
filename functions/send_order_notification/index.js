@@ -37,7 +37,7 @@ exports.handler = async function (event, context) {
     const resend = new Resend(RESEND_API_KEY);
 
     const subject = `New Order Placed — ${order.id}`;
-    let text = `A new order was placed in Karma Shop:\n`;
+    let text = `A new order was placed in KarmaGully:\n`;
     text += `Order ID: ${order.id}\n`;
     text += `Customer: ${order.customerName || order.userId || 'Unknown'}\n`;
     text += `Email: ${order.customerEmail || 'N/A'}\n`;

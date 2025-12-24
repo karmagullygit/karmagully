@@ -30,7 +30,7 @@ class _AIMarketingChatScreenState extends State<AIMarketingChatScreen> {
   void _addWelcomeMessage() {
     _messages.add(
       ChatMessage(
-        text: "👋 Welcome to your AI Marketing Assistant!\n\nI'm here to help you grow Karma Shop with:\n\n🎯 Marketing strategies\n📊 Market research\n💡 Business insights\n🔍 Competitor analysis\n\nWhat would you like to know about marketing your anime merchandise business?",
+        text: "👋 Welcome to your AI Marketing Assistant!\n\nI'm here to help you grow KarmaGully with:\n\n🎯 Marketing strategies\n📊 Market research\n💡 Business insights\n🔍 Competitor analysis\n\nWhat would you like to know about marketing your anime merchandise business?",
         isUser: false,
         timestamp: DateTime.now(),
       ),

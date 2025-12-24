@@ -9,6 +9,7 @@ import '../../providers/social_feed_provider.dart';
 import '../../providers/user_management_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/report_provider.dart';
+import '../../providers/theme_provider.dart';
 import '../../models/social_post.dart';
 import '../../models/post_report.dart';
 import 'create_post_screen.dart';
@@ -197,19 +198,22 @@ class SocialFeedScreen extends StatelessWidget {
               MaterialPageRoute(builder: (context) => const CreatePostScreen()),
             );
           },
-      child: Container(
+      child: Consumer<ThemeProvider>(
+        builder: (context, themeProvider, child) {
+          final isDarkMode = themeProvider.isDarkMode;
+          return Container(
         margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: const Color(0xFF1C1F26),
+          color: isDarkMode ? const Color(0xFF1C1F26) : Colors.white,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.white.withOpacity(0.1)),
+          border: Border.all(color: isDarkMode ? Colors.white.withOpacity(0.1) : Colors.grey.shade300),
         ),
         child: Row(
           children: [
             CircleAvatar(
               radius: 20,
-              backgroundColor: const Color(0xFF6B73FF),
+              backgroundColor: isDarkMode ? const Color(0xFF6B73FF) : Colors.blue,
               child: const Text(
                 'S',
                 style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
@@ -219,19 +223,21 @@ class SocialFeedScreen extends StatelessWidget {
             Expanded(
               child: Text(
                 "What's on your mind?",
-                style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 15),
+                style: TextStyle(color: isDarkMode ? Colors.white.withOpacity(0.5) : Colors.black45, fontSize: 15),
               ),
             ),
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: const Color(0xFF6B73FF),
+                color: isDarkMode ? const Color(0xFF6B73FF) : Colors.blue,
                 borderRadius: BorderRadius.circular(10),
               ),
               child: const Icon(Icons.image_outlined, color: Colors.white, size: 20),
             ),
           ],
         ),
+      );
+        },
       ),
     );
       },
@@ -627,10 +633,19 @@ class SocialFeedScreen extends StatelessWidget {
                       CircleAvatar(
                         radius: 12,
                         backgroundColor: const Color(0xFF6B73FF),
-                        child: Text(
-                          (post.userDisplayName ?? post.username)[0].toUpperCase(),
-                          style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
-                        ),
+                        backgroundImage: post.userAvatar.startsWith('assets/')
+                            ? AssetImage(post.userAvatar) as ImageProvider
+                            : (post.userAvatar.startsWith('http') || post.userAvatar.contains('/'))
+                                ? (post.userAvatar.startsWith('http')
+                                    ? NetworkImage(post.userAvatar) as ImageProvider
+                                    : FileImage(File(post.userAvatar)))
+                                : null,
+                        child: (post.userAvatar.startsWith('assets/') || post.userAvatar.startsWith('http') || post.userAvatar.contains('/'))
+                            ? null
+                            : Text(
+                                (post.userDisplayName ?? post.username)[0].toUpperCase(),
+                                style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                              ),
                       ),
                       const SizedBox(width: 6),
                       Expanded(
@@ -1119,11 +1134,16 @@ class SocialFeedScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final isDarkMode = themeProvider.isDarkMode;
+    final backgroundColor = isDarkMode ? const Color(0xFF0A0E27) : const Color(0xFFFAFAFA);
+    final textColor = isDarkMode ? Colors.white : Colors.black87;
+    
     return Scaffold(
-      backgroundColor: const Color(0xFF181A20),
+      backgroundColor: backgroundColor,
       appBar: AppBar(
-        title: const Text('Community Feed', style: TextStyle(color: Colors.white)),
-        backgroundColor: const Color(0xFF181A20),
+        title: Text('Community Feed', style: TextStyle(color: textColor)),
+        backgroundColor: backgroundColor,
         elevation: 0,
         actions: [
           IconButton(
@@ -1136,13 +1156,13 @@ class SocialFeedScreen extends StatelessWidget {
       body: Consumer<SocialFeedProvider>(
         builder: (context, feedProvider, child) {
           if (feedProvider.isLoading) {
-            return const Center(child: CircularProgressIndicator(color: Color(0xFF6B73FF)));
+            return Center(child: CircularProgressIndicator(color: isDarkMode ? const Color(0xFF6B73FF) : Colors.blue));
           }
           if (feedProvider.error != null) {
             return Center(child: Text('Error: ${feedProvider.error!}', style: const TextStyle(color: Colors.red)));
           }
           if (feedProvider.posts.isEmpty) {
-            return const Center(child: Text('No posts yet. Start sharing your moments!', style: TextStyle(color: Colors.white70)));
+            return Center(child: Text('No posts yet. Start sharing your moments!', style: TextStyle(color: isDarkMode ? Colors.white70 : Colors.black54)));
           }
           
           // Get trending posts to exclude from regular feed
@@ -1170,8 +1190,8 @@ class SocialFeedScreen extends StatelessWidget {
                 margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(20),
-                  color: const Color(0xFF1C1F26),
-                  border: Border.all(color: Colors.white.withOpacity(0.05)),
+                  color: isDarkMode ? const Color(0xFF1C1F26) : Colors.white,
+                  border: Border.all(color: isDarkMode ? Colors.white.withOpacity(0.05) : Colors.grey.shade300),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -1200,13 +1220,15 @@ class SocialFeedScreen extends StatelessWidget {
                             },
                             child: CircleAvatar(
                               radius: 20,
-                              backgroundColor: const Color(0xFF6B73FF),
-                              backgroundImage: (post.userAvatar.startsWith('http') || post.userAvatar.contains('/'))
-                                  ? (post.userAvatar.startsWith('http')
-                                      ? NetworkImage(post.userAvatar) as ImageProvider
-                                      : FileImage(File(post.userAvatar)))
-                                  : null,
-                              child: (post.userAvatar.startsWith('http') || post.userAvatar.contains('/'))
+                              backgroundColor: isDarkMode ? const Color(0xFF6B73FF) : Colors.blue,
+                              backgroundImage: post.userAvatar.startsWith('assets/')
+                                  ? AssetImage(post.userAvatar) as ImageProvider
+                                  : (post.userAvatar.startsWith('http') || post.userAvatar.contains('/'))
+                                      ? (post.userAvatar.startsWith('http')
+                                          ? NetworkImage(post.userAvatar) as ImageProvider
+                                          : FileImage(File(post.userAvatar)))
+                                      : null,
+                              child: (post.userAvatar.startsWith('assets/') || post.userAvatar.startsWith('http') || post.userAvatar.contains('/'))
                                   ? null
                                   : Text(
                                       post.userAvatar,
@@ -1224,7 +1246,7 @@ class SocialFeedScreen extends StatelessWidget {
                                     Flexible(
                                       child: Text(
                                         post.userDisplayName ?? post.username,
-                                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.white),
+                                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: isDarkMode ? Colors.white : Colors.black87),
                                         overflow: TextOverflow.ellipsis,
                                       ),
                                     ),
@@ -1240,17 +1262,17 @@ class SocialFeedScreen extends StatelessWidget {
                                 ),
                                 Text(
                                   _formatDate(post.createdAt),
-                                  style: TextStyle(fontSize: 12, color: Colors.white.withOpacity(0.5)),
+                                  style: TextStyle(fontSize: 12, color: isDarkMode ? Colors.white.withOpacity(0.5) : Colors.black54),
                                 ),
                               ],
                             ),
                           ),
                           PopupMenuButton<String>(
-                            icon: Icon(Icons.more_horiz, color: Colors.white.withOpacity(0.5)),
-                            color: const Color(0xFF1C1F26),
+                            icon: Icon(Icons.more_horiz, color: isDarkMode ? Colors.white.withOpacity(0.5) : Colors.black54),
+                            color: isDarkMode ? const Color(0xFF1C1F26) : Colors.white,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
-                              side: BorderSide(color: Colors.white.withOpacity(0.1)),
+                              side: BorderSide(color: isDarkMode ? Colors.white.withOpacity(0.1) : Colors.grey.shade300),
                             ),
                             onSelected: (value) => _handleMenuAction(context, value, post, feedProvider),
                             itemBuilder: (context) => [
@@ -1259,9 +1281,9 @@ class SocialFeedScreen extends StatelessWidget {
                                   value: 'edit',
                                   child: Row(
                                     children: [
-                                      const Icon(Icons.edit_outlined, color: Color(0xFF6B73FF), size: 20),
+                                      Icon(Icons.edit_outlined, color: isDarkMode ? const Color(0xFF6B73FF) : Colors.blue, size: 20),
                                       const SizedBox(width: 12),
-                                      Text('Edit Post', style: TextStyle(color: Colors.white.withOpacity(0.9))),
+                                      Text('Edit Post', style: TextStyle(color: isDarkMode ? Colors.white.withOpacity(0.9) : Colors.black87)),
                                     ],
                                   ),
                                 ),
@@ -1271,7 +1293,7 @@ class SocialFeedScreen extends StatelessWidget {
                                     children: [
                                       const Icon(Icons.delete_outline, color: Colors.red, size: 20),
                                       const SizedBox(width: 12),
-                                      Text('Delete Post', style: TextStyle(color: Colors.white.withOpacity(0.9))),
+                                      Text('Delete Post', style: TextStyle(color: isDarkMode ? Colors.white.withOpacity(0.9) : Colors.black87)),
                                     ],
                                   ),
                                 ),
@@ -1281,9 +1303,9 @@ class SocialFeedScreen extends StatelessWidget {
                                 value: 'share',
                                 child: Row(
                                   children: [
-                                    const Icon(Icons.share_outlined, color: Color(0xFF6B73FF), size: 20),
+                                    Icon(Icons.share_outlined, color: isDarkMode ? const Color(0xFF6B73FF) : Colors.blue, size: 20),
                                     const SizedBox(width: 12),
-                                    Text('Share Post', style: TextStyle(color: Colors.white.withOpacity(0.9))),
+                                    Text('Share Post', style: TextStyle(color: isDarkMode ? Colors.white.withOpacity(0.9) : Colors.black87)),
                                   ],
                                 ),
                               ),
@@ -1291,9 +1313,9 @@ class SocialFeedScreen extends StatelessWidget {
                                 value: 'copylink',
                                 child: Row(
                                   children: [
-                                    const Icon(Icons.link, color: Color(0xFF6B73FF), size: 20),
+                                    Icon(Icons.link, color: isDarkMode ? const Color(0xFF6B73FF) : Colors.blue, size: 20),
                                     const SizedBox(width: 12),
-                                    Text('Copy Link', style: TextStyle(color: Colors.white.withOpacity(0.9))),
+                                    Text('Copy Link', style: TextStyle(color: isDarkMode ? Colors.white.withOpacity(0.9) : Colors.black87)),
                                   ],
                                 ),
                               ),
@@ -1301,9 +1323,9 @@ class SocialFeedScreen extends StatelessWidget {
                                 value: 'bookmark',
                                 child: Row(
                                   children: [
-                                    const Icon(Icons.bookmark_outline, color: Color(0xFF6B73FF), size: 20),
+                                    Icon(Icons.bookmark_outline, color: isDarkMode ? const Color(0xFF6B73FF) : Colors.blue, size: 20),
                                     const SizedBox(width: 12),
-                                    Text('Save Post', style: TextStyle(color: Colors.white.withOpacity(0.9))),
+                                    Text('Save Post', style: TextStyle(color: isDarkMode ? Colors.white.withOpacity(0.9) : Colors.black87)),
                                   ],
                                 ),
                               ),
@@ -1315,7 +1337,7 @@ class SocialFeedScreen extends StatelessWidget {
                                     children: [
                                       const Icon(Icons.flag_outlined, color: Colors.orange, size: 20),
                                       const SizedBox(width: 12),
-                                      Text('Report Post', style: TextStyle(color: Colors.white.withOpacity(0.9))),
+                                      Text('Report Post', style: TextStyle(color: isDarkMode ? Colors.white.withOpacity(0.9) : Colors.black87)),
                                     ],
                                   ),
                                 ),
@@ -1325,7 +1347,7 @@ class SocialFeedScreen extends StatelessWidget {
                                     children: [
                                       const Icon(Icons.visibility_off_outlined, color: Colors.grey, size: 20),
                                       const SizedBox(width: 12),
-                                      Text('Hide Post', style: TextStyle(color: Colors.white.withOpacity(0.9))),
+                                      Text('Hide Post', style: TextStyle(color: isDarkMode ? Colors.white.withOpacity(0.9) : Colors.black87)),
                                     ],
                                   ),
                                 ),
@@ -1340,7 +1362,7 @@ class SocialFeedScreen extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(horizontal: 16),
                         child: Text(
                           post.content,
-                          style: const TextStyle(fontSize: 14, color: Colors.white, height: 1.4),
+                          style: TextStyle(fontSize: 14, color: isDarkMode ? Colors.white : Colors.black87, height: 1.4),
                         ),
                       ),
                     if (post.mediaUrls.isNotEmpty)

@@ -21,6 +21,11 @@ class _ReportsManagementScreenState extends State<ReportsManagementScreen> with 
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    
+    // Load reports when screen opens to ensure we have latest data
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<ReportProvider>().loadReports();
+    });
   }
 
   @override

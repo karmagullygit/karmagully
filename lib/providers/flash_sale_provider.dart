@@ -301,6 +301,20 @@ class FlashSaleProvider extends ChangeNotifier {
     }
   }
 
+  // Get flash sales by status
+  List<FlashSale> getFlashSalesByStatus(String status) {
+    switch (status) {
+      case 'active':
+        return activeFlashSales;
+      case 'upcoming':
+        return upcomingFlashSales;
+      case 'expired':
+        return expiredFlashSales;
+      default:
+        return [];
+    }
+  }
+
   // Get flash sale statistics
   Map<String, dynamic> getFlashSaleStats() {
     final total = _flashSales.length;

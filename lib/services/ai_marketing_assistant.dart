@@ -86,18 +86,18 @@ class AIMarketingAssistant {
     }
     
     final prompt = """
-You are an expert marketing consultant specializing in anime merchandise and e-commerce.
+  You are an expert marketing consultant specializing in anime merchandise and e-commerce.
 
-User question: "$message"
+  User question: "$message"
 
-Provide a helpful, detailed response (4-6 sentences) with specific, actionable advice for an anime merchandise business called Karma Shop. Include:
-- Practical steps they can implement immediately
-- Specific platforms, tools, or strategies
-- Expected outcomes or metrics to track
-- Any relevant trends in anime/pop culture marketing
+  Provide a helpful, detailed response (4-6 sentences) with specific, actionable advice for an anime merchandise business called KarmaGully. Include:
+  - Practical steps they can implement immediately
+  - Specific platforms, tools, or strategies
+  - Expected outcomes or metrics to track
+  - Any relevant trends in anime/pop culture marketing
 
-Be enthusiastic and use relevant emojis. Make it personal and specific to anime merchandise business.
-""";
+  Be enthusiastic and use relevant emojis. Make it personal and specific to anime merchandise business.
+  """;
     
     try {
       final response = await _callGemini(prompt);
@@ -315,7 +315,7 @@ Focus on practical business advice for mobile app growth, customer acquisition, 
   String _buildBusinessContext(Map<String, dynamic>? appData) {
     return """
 Business Context:
-- Business Name: Karma Shop
+- Business Name: KarmaGully
 - Industry: E-commerce / Anime Merchandise 
 - Platform: Mobile App (Flutter)
 - Target Market: Anime fans, collectors, young adults (16-35)

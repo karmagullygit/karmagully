@@ -28,7 +28,7 @@ class _AdsManagementScreenState extends State<AdsManagementScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('🎯 Ads Management'),
+        title: const Text('� Carousel Management'),
         backgroundColor: const Color(0xFF1A1D29),
         foregroundColor: Colors.white,
         actions: [
@@ -263,7 +263,17 @@ class _AdsManagementScreenState extends State<AdsManagementScreen> {
             height: 60,
             color: Colors.grey[800],
             child: banner.imageUrl.isNotEmpty 
-                ? Image.network(banner.imageUrl, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Icon(Icons.image, color: Colors.white54))
+                ? (banner.imageUrl.startsWith('file://') 
+                    ? Image.file(
+                        File(banner.imageUrl.replaceFirst('file://', '')), 
+                        fit: BoxFit.cover, 
+                        errorBuilder: (_, __, ___) => const Icon(Icons.image, color: Colors.white54)
+                      )
+                    : Image.network(
+                        banner.imageUrl, 
+                        fit: BoxFit.cover, 
+                        errorBuilder: (_, __, ___) => const Icon(Icons.image, color: Colors.white54)
+                      ))
                 : const Icon(Icons.image, color: Colors.white54),
           ),
         ),
@@ -341,7 +351,17 @@ class _AdsManagementScreenState extends State<AdsManagementScreen> {
             height: 60,
             color: Colors.grey[800],
             child: ad.imageUrl.isNotEmpty 
-                ? Image.network(ad.imageUrl, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Icon(Icons.image, color: Colors.white54))
+                ? (ad.imageUrl.startsWith('file://') 
+                    ? Image.file(
+                        File(ad.imageUrl.replaceFirst('file://', '')), 
+                        fit: BoxFit.cover, 
+                        errorBuilder: (_, __, ___) => const Icon(Icons.image, color: Colors.white54)
+                      )
+                    : Image.network(
+                        ad.imageUrl, 
+                        fit: BoxFit.cover, 
+                        errorBuilder: (_, __, ___) => const Icon(Icons.image, color: Colors.white54)
+                      ))
                 : const Icon(Icons.image, color: Colors.white54),
           ),
         ),
@@ -414,95 +434,155 @@ class _AdsManagementScreenState extends State<AdsManagementScreen> {
     final imageUrlController = TextEditingController();
     final actionUrlController = TextEditingController();
     int order = 1;
-    
+    File? selectedImageFile;
+
+    // Dark theme input decoration
+    InputDecoration darkInputDecoration(String label, {String? hint}) {
+      return InputDecoration(
+        labelText: label,
+        hintText: hint,
+        labelStyle: const TextStyle(color: Colors.blue),
+        hintStyle: TextStyle(color: Colors.grey[500]),
+        filled: true,
+        fillColor: const Color(0xFF252836),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide.none,
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: Color(0xFF3A3D4A), width: 1),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: Colors.blue, width: 2),
+        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      );
+    }
+
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setState) => AlertDialog(
-          backgroundColor: const Color(0xFF1A1D29),
-          title: const Text('Create Carousel Banner', style: TextStyle(color: Colors.white)),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: titleController,
-                  decoration: const InputDecoration(
-                    labelText: 'Banner Title',
-                    labelStyle: TextStyle(color: Colors.white70),
-                    border: OutlineInputBorder(),
+          backgroundColor: const Color(0xFF1E2130),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Text('Create Carousel Banner', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  TextField(
+                    controller: titleController,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: darkInputDecoration('Banner Title', hint: 'Enter banner title'),
                   ),
-                  style: const TextStyle(color: Colors.white),
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: subtitleController,
-                  decoration: const InputDecoration(
-                    labelText: 'Subtitle',
-                    labelStyle: TextStyle(color: Colors.white70),
-                    border: OutlineInputBorder(),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: subtitleController,
+                    style: const TextStyle(color: Colors.white),
+                    maxLines: 2,
+                    decoration: darkInputDecoration('Subtitle', hint: 'Enter subtitle'),
                   ),
-                  style: const TextStyle(color: Colors.white),
-                  maxLines: 2,
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: imageUrlController,
-                  decoration: const InputDecoration(
-                    labelText: 'Image URL',
-                    labelStyle: TextStyle(color: Colors.white70),
-                    border: OutlineInputBorder(),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: imageUrlController,
+                          style: const TextStyle(color: Colors.white),
+                          decoration: darkInputDecoration('Image URL', hint: 'URL or upload'),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.blue,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: IconButton(
+                          onPressed: () async {
+                            FilePickerResult? result = await FilePicker.platform.pickFiles(
+                              type: FileType.image,
+                              allowMultiple: false,
+                            );
+                            if (result != null) {
+                              setState(() {
+                                selectedImageFile = File(result.files.single.path!);
+                                imageUrlController.text = result.files.single.name;
+                              });
+                            }
+                          },
+                          icon: const Icon(Icons.upload, color: Colors.white),
+                          tooltip: 'Upload Image',
+                        ),
+                      ),
+                    ],
                   ),
-                  style: const TextStyle(color: Colors.white),
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: actionUrlController,
-                  decoration: const InputDecoration(
-                    labelText: 'Action URL (optional)',
-                    labelStyle: TextStyle(color: Colors.white70),
-                    border: OutlineInputBorder(),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: actionUrlController,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: darkInputDecoration('Action URL (optional)', hint: 'https://...'),
                   ),
-                  style: const TextStyle(color: Colors.white),
-                ),
-                const SizedBox(height: 16),
-                DropdownButtonFormField<int>(
-                  value: order,
-                  decoration: const InputDecoration(
-                    labelText: 'Display Order',
-                    labelStyle: TextStyle(color: Colors.white70),
-                    border: OutlineInputBorder(),
+                  const SizedBox(height: 16),
+                  const Text('Display Order', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                  const SizedBox(height: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF252836),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: const Color(0xFF3A3D4A)),
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<int>(
+                        value: order,
+                        isExpanded: true,
+                        dropdownColor: const Color(0xFF252836),
+                        style: const TextStyle(color: Colors.white),
+                        icon: const Icon(Icons.arrow_drop_down, color: Colors.white),
+                        items: List.generate(10, (index) => DropdownMenuItem(
+                          value: index + 1,
+                          child: Text('Order ${index + 1}'),
+                        )),
+                        onChanged: (value) => setState(() => order = value!),
+                      ),
+                    ),
                   ),
-                  dropdownColor: const Color(0xFF1A1D29),
-                  style: const TextStyle(color: Colors.white),
-                  items: List.generate(10, (index) => DropdownMenuItem(
-                    value: index + 1,
-                    child: Text('Order ${index + 1}'),
-                  )),
-                  onChanged: (value) => setState(() => order = value!),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel', style: TextStyle(color: Colors.white70)),
+              child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
             ),
             ElevatedButton(
               onPressed: () {
                 if (titleController.text.isNotEmpty) {
+                  final imageUrl = selectedImageFile != null 
+                      ? 'file://${selectedImageFile!.path}' 
+                      : imageUrlController.text;
                   _createCarouselBanner(
                     titleController.text,
                     subtitleController.text,
-                    imageUrlController.text,
+                    imageUrl,
                     actionUrlController.text,
                     order,
                   );
                   Navigator.pop(context);
                 }
               },
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              ),
               child: const Text('Create Banner'),
             ),
           ],
@@ -519,193 +599,276 @@ class _AdsManagementScreenState extends State<AdsManagementScreen> {
     final actionUrlController = TextEditingController();
     AdType selectedType = AdType.banner;
     AdPlacement selectedPlacement = AdPlacement.banner;
-    String mediaType = 'image'; // 'image' or 'video'
+    String mediaType = 'image';
     File? selectedVideoFile;
     File? selectedImageFile;
-    
+
+    // Dark theme input decoration
+    InputDecoration darkInputDecoration(String label, {String? hint}) {
+      return InputDecoration(
+        labelText: label,
+        hintText: hint,
+        labelStyle: const TextStyle(color: Colors.blue),
+        hintStyle: TextStyle(color: Colors.grey[500]),
+        filled: true,
+        fillColor: const Color(0xFF252836),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide.none,
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: Color(0xFF3A3D4A), width: 1),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: Colors.blue, width: 2),
+        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      );
+    }
+
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setState) => AlertDialog(
-          backgroundColor: const Color(0xFF1A1D29),
-          title: const Text('Create Advertisement', style: TextStyle(color: Colors.white)),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                DropdownButtonFormField<AdType>(
-                  value: selectedType,
-                  decoration: const InputDecoration(
-                    labelText: 'Ad Type',
-                    labelStyle: TextStyle(color: Colors.white70),
-                    border: OutlineInputBorder(),
-                  ),
-                  dropdownColor: const Color(0xFF1A1D29),
-                  style: const TextStyle(color: Colors.white),
-                  items: AdType.values.map((type) => DropdownMenuItem(
-                    value: type,
-                    child: Text(type.name.toUpperCase()),
-                  )).toList(),
-                  onChanged: (value) => setState(() => selectedType = value!),
-                ),
-                const SizedBox(height: 16),
-                DropdownButtonFormField<AdPlacement>(
-                  value: selectedPlacement,
-                  decoration: const InputDecoration(
-                    labelText: 'Placement',
-                    labelStyle: TextStyle(color: Colors.white70),
-                    border: OutlineInputBorder(),
-                  ),
-                  dropdownColor: const Color(0xFF1A1D29),
-                  style: const TextStyle(color: Colors.white),
-                  items: AdPlacement.values.map((placement) => DropdownMenuItem(
-                    value: placement,
-                    child: Text(placement.name.toUpperCase()),
-                  )).toList(),
-                  onChanged: (value) => setState(() => selectedPlacement = value!),
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: titleController,
-                  decoration: const InputDecoration(
-                    labelText: 'Ad Title',
-                    labelStyle: TextStyle(color: Colors.white70),
-                    border: OutlineInputBorder(),
-                  ),
-                  style: const TextStyle(color: Colors.white),
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: descriptionController,
-                  decoration: const InputDecoration(
-                    labelText: 'Description',
-                    labelStyle: TextStyle(color: Colors.white70),
-                    border: OutlineInputBorder(),
-                  ),
-                  style: const TextStyle(color: Colors.white),
-                  maxLines: 3,
-                ),
-                const SizedBox(height: 16),
-                
-                // Media Type Selection
-                Row(
-                  children: [
-                    Expanded(
-                      child: RadioListTile<String>(
-                        title: const Text('Image', style: TextStyle(color: Colors.white)),
-                        value: 'image',
-                        groupValue: mediaType,
-                        activeColor: Colors.blue,
-                        onChanged: (value) => setState(() => mediaType = value!),
+          backgroundColor: const Color(0xFF1E2130),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Text(
+            'Create Advertisement',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          ),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Ad Type Dropdown
+                  const Text('Ad Type', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                  const SizedBox(height: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF252836),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: const Color(0xFF3A3D4A)),
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<AdType>(
+                        value: selectedType,
+                        isExpanded: true,
+                        dropdownColor: const Color(0xFF252836),
+                        style: const TextStyle(color: Colors.white),
+                        icon: const Icon(Icons.arrow_drop_down, color: Colors.white),
+                        items: AdType.values.map((type) => DropdownMenuItem(
+                          value: type,
+                          child: Text(type.name.toUpperCase()),
+                        )).toList(),
+                        onChanged: (value) => setState(() => selectedType = value!),
                       ),
                     ),
-                    Expanded(
-                      child: RadioListTile<String>(
-                        title: const Text('Video', style: TextStyle(color: Colors.white)),
-                        value: 'video',
-                        groupValue: mediaType,
-                        activeColor: Colors.blue,
-                        onChanged: (value) => setState(() => mediaType = value!),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Placement Dropdown
+                  const Text('Placement', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                  const SizedBox(height: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF252836),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: const Color(0xFF3A3D4A)),
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<AdPlacement>(
+                        value: selectedPlacement,
+                        isExpanded: true,
+                        dropdownColor: const Color(0xFF252836),
+                        style: const TextStyle(color: Colors.white),
+                        icon: const Icon(Icons.arrow_drop_down, color: Colors.white),
+                        items: AdPlacement.values.map((placement) => DropdownMenuItem(
+                          value: placement,
+                          child: Text(placement.name.toUpperCase()),
+                        )).toList(),
+                        onChanged: (value) => setState(() => selectedPlacement = value!),
                       ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Ad Title
+                  TextField(
+                    controller: titleController,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: darkInputDecoration('Ad Title', hint: 'Enter ad title'),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Description
+                  TextField(
+                    controller: descriptionController,
+                    style: const TextStyle(color: Colors.white),
+                    maxLines: 3,
+                    decoration: darkInputDecoration('Description', hint: 'Enter description'),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Media Type Selection
+                  const Text('Media Type', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () => setState(() => mediaType = 'image'),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            decoration: BoxDecoration(
+                              color: mediaType == 'image' ? Colors.blue.withOpacity(0.2) : const Color(0xFF252836),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: mediaType == 'image' ? Colors.blue : const Color(0xFF3A3D4A),
+                                width: mediaType == 'image' ? 2 : 1,
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.image, color: mediaType == 'image' ? Colors.blue : Colors.grey, size: 20),
+                                const SizedBox(width: 8),
+                                Text('Image', style: TextStyle(color: mediaType == 'image' ? Colors.blue : Colors.grey)),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () => setState(() => mediaType = 'video'),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            decoration: BoxDecoration(
+                              color: mediaType == 'video' ? Colors.blue.withOpacity(0.2) : const Color(0xFF252836),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: mediaType == 'video' ? Colors.blue : const Color(0xFF3A3D4A),
+                                width: mediaType == 'video' ? 2 : 1,
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.videocam, color: mediaType == 'video' ? Colors.blue : Colors.grey, size: 20),
+                                const SizedBox(width: 8),
+                                Text('Video', style: TextStyle(color: mediaType == 'video' ? Colors.blue : Colors.grey)),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Media URL/Upload
+                  if (mediaType == 'image') ...[
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: imageUrlController,
+                            style: const TextStyle(color: Colors.white),
+                            decoration: darkInputDecoration('Image URL', hint: 'URL or tap upload'),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Colors.blue,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: IconButton(
+                            onPressed: () async {
+                              FilePickerResult? result = await FilePicker.platform.pickFiles(
+                                type: FileType.image,
+                                allowMultiple: false,
+                              );
+                              if (result != null) {
+                                setState(() {
+                                  selectedImageFile = File(result.files.single.path!);
+                                  imageUrlController.text = result.files.single.name;
+                                });
+                              }
+                            },
+                            icon: const Icon(Icons.upload, color: Colors.white),
+                            tooltip: 'Upload Image',
+                          ),
+                        ),
+                      ],
+                    ),
+                  ] else ...[
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: videoUrlController,
+                            style: const TextStyle(color: Colors.white),
+                            decoration: darkInputDecoration('Video URL', hint: 'URL or tap upload'),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Colors.blue,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: IconButton(
+                            onPressed: () async {
+                              FilePickerResult? result = await FilePicker.platform.pickFiles(
+                                type: FileType.video,
+                                allowMultiple: false,
+                              );
+                              if (result != null) {
+                                setState(() {
+                                  selectedVideoFile = File(result.files.single.path!);
+                                  videoUrlController.text = result.files.single.name;
+                                });
+                              }
+                            },
+                            icon: const Icon(Icons.upload, color: Colors.white),
+                            tooltip: 'Upload Video',
+                          ),
+                        ),
+                      ],
                     ),
                   ],
-                ),
-                const SizedBox(height: 16),
-                
-                // Media Upload/URL Section
-                if (mediaType == 'image') ...[
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          controller: imageUrlController,
-                          decoration: const InputDecoration(
-                            labelText: 'Image URL',
-                            labelStyle: TextStyle(color: Colors.white70),
-                            border: OutlineInputBorder(),
-                          ),
-                          style: const TextStyle(color: Colors.white),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      ElevatedButton.icon(
-                        onPressed: () async {
-                          FilePickerResult? result = await FilePicker.platform.pickFiles(
-                            type: FileType.image,
-                            allowMultiple: false,
-                          );
-                          if (result != null) {
-                            setState(() {
-                              selectedImageFile = File(result.files.single.path!);
-                              imageUrlController.text = result.files.single.name;
-                            });
-                          }
-                        },
-                        icon: const Icon(Icons.upload_file),
-                        label: const Text('Upload'),
-                      ),
-                    ],
-                  ),
-                ] else ...[
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          controller: videoUrlController,
-                          decoration: const InputDecoration(
-                            labelText: 'Video URL',
-                            labelStyle: TextStyle(color: Colors.white70),
-                            border: OutlineInputBorder(),
-                          ),
-                          style: const TextStyle(color: Colors.white),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      ElevatedButton.icon(
-                        onPressed: () async {
-                          FilePickerResult? result = await FilePicker.platform.pickFiles(
-                            type: FileType.video,
-                            allowMultiple: false,
-                          );
-                          if (result != null) {
-                            setState(() {
-                              selectedVideoFile = File(result.files.single.path!);
-                              videoUrlController.text = result.files.single.name;
-                            });
-                          }
-                        },
-                        icon: const Icon(Icons.upload_file),
-                        label: const Text('Upload'),
-                      ),
-                    ],
+                  const SizedBox(height: 16),
+
+                  // Action URL
+                  TextField(
+                    controller: actionUrlController,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: darkInputDecoration('Action URL (optional)', hint: 'https://...'),
                   ),
                 ],
-                const SizedBox(height: 16),
-                TextField(
-                  controller: actionUrlController,
-                  decoration: const InputDecoration(
-                    labelText: 'Action URL (optional)',
-                    labelStyle: TextStyle(color: Colors.white70),
-                    border: OutlineInputBorder(),
-                  ),
-                  style: const TextStyle(color: Colors.white),
-                ),
-              ],
+              ),
             ),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel', style: TextStyle(color: Colors.white70)),
+              child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
             ),
             TextButton(
               onPressed: () {
-                // Test simple banner with current inputs
                 if (titleController.text.isNotEmpty) {
-                  final mediaUrl = mediaType == 'image' 
+                  final mediaUrl = mediaType == 'image'
                       ? (selectedImageFile != null ? 'file://${selectedImageFile!.path}' : imageUrlController.text)
                       : null;
-                  
                   SimpleBannerService.instance.showBanner(
                     context: context,
                     title: titleController.text,
@@ -724,10 +887,10 @@ class _AdsManagementScreenState extends State<AdsManagementScreen> {
             ElevatedButton(
               onPressed: () {
                 if (titleController.text.isNotEmpty) {
-                  final mediaUrl = mediaType == 'video' 
+                  final mediaUrl = mediaType == 'video'
                       ? (selectedVideoFile != null ? 'file://${selectedVideoFile!.path}' : videoUrlController.text)
                       : (selectedImageFile != null ? 'file://${selectedImageFile!.path}' : imageUrlController.text);
-                      
+
                   _createAdvertisement(
                     titleController.text,
                     descriptionController.text,
@@ -736,8 +899,7 @@ class _AdsManagementScreenState extends State<AdsManagementScreen> {
                     mediaUrl,
                     actionUrlController.text,
                   );
-                  
-                  // Show banner ad if it's an image type
+
                   if (mediaType == 'image' && mediaUrl.isNotEmpty) {
                     Future.delayed(const Duration(seconds: 1), () {
                       SimpleBannerService.instance.showBanner(
@@ -755,20 +917,24 @@ class _AdsManagementScreenState extends State<AdsManagementScreen> {
                       );
                     });
                   }
-                  
+
                   Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text(
-                        mediaType == 'image' 
-                          ? 'Advertisement created! A banner will appear shortly.'
-                          : 'Advertisement created successfully!',
+                        mediaType == 'image'
+                            ? 'Advertisement created! A banner will appear shortly.'
+                            : 'Advertisement created successfully!',
                       ),
                     ),
                   );
                 }
               },
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              ),
               child: const Text('Create Ad'),
             ),
           ],

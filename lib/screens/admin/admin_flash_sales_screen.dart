@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../constants/app_colors.dart';
@@ -36,7 +37,7 @@ class _AdminFlashSalesScreenState extends State<AdminFlashSalesScreen> with Sing
     return Consumer<ThemeProvider>(
       builder: (context, themeProvider, child) {
         final isDarkMode = themeProvider.isDarkMode;
-        
+
         return Scaffold(
           backgroundColor: AppColors.getBackgroundColor(isDarkMode),
           appBar: AppBar(
@@ -55,11 +56,6 @@ class _AdminFlashSalesScreenState extends State<AdminFlashSalesScreen> with Sing
               unselectedLabelColor: Colors.white70,
             ),
             actions: [
-              IconButton(
-                onPressed: () => _navigateToCreateFlashSale(),
-                icon: const Icon(Icons.add),
-                tooltip: 'Create Flash Sale',
-              ),
               IconButton(
                 onPressed: () => _refreshFlashSales(),
                 icon: const Icon(Icons.refresh),
@@ -97,62 +93,16 @@ class _AdminFlashSalesScreenState extends State<AdminFlashSalesScreen> with Sing
     return Consumer<FlashSaleProvider>(
       builder: (context, flashSaleProvider, child) {
         final stats = flashSaleProvider.getFlashSaleStats();
-        
+
         return Container(
           padding: const EdgeInsets.all(16),
-          margin: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                AppColors.primary,
-                AppColors.primary.withOpacity(0.8),
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.primary.withOpacity(0.3),
-                blurRadius: 8,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
+          color: AppColors.getCardBackgroundColor(isDarkMode),
           child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              Expanded(
-                child: _buildStatItem(
-                  'Total',
-                  stats['total'],
-                  Icons.flash_on,
-                  Colors.white,
-                ),
-              ),
-              Expanded(
-                child: _buildStatItem(
-                  'Active',
-                  stats['active'],
-                  Icons.play_arrow,
-                  Colors.greenAccent,
-                ),
-              ),
-              Expanded(
-                child: _buildStatItem(
-                  'Upcoming',
-                  stats['upcoming'],
-                  Icons.schedule,
-                  Colors.orangeAccent,
-                ),
-              ),
-              Expanded(
-                child: _buildStatItem(
-                  'Expired',
-                  stats['expired'],
-                  Icons.stop,
-                  Colors.redAccent,
-                ),
-              ),
+              _buildStatItem('Active', stats['active'] ?? 0, Colors.green, isDarkMode),
+              _buildStatItem('Upcoming', stats['upcoming'] ?? 0, Colors.orange, isDarkMode),
+              _buildStatItem('Expired', stats['expired'] ?? 0, Colors.red, isDarkMode),
             ],
           ),
         );
@@ -160,61 +110,35 @@ class _AdminFlashSalesScreenState extends State<AdminFlashSalesScreen> with Sing
     );
   }
 
-  Widget _buildStatItem(String label, int count, IconData icon, Color color) {
+  Widget _buildStatItem(String label, int count, Color color, bool isDarkMode) {
     return Column(
       children: [
-        Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: color.withOpacity(0.2),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Icon(icon, color: color, size: 24),
-        ),
-        const SizedBox(height: 8),
         Text(
-          '$count',
-          style: const TextStyle(
+          count.toString(),
+          style: TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.bold,
-            color: Colors.white,
+            color: color,
           ),
         ),
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
+            color: AppColors.getTextColor(isDarkMode),
             fontSize: 12,
-            color: Colors.white70,
           ),
         ),
       ],
     );
   }
 
-  Widget _buildFlashSalesList(String type, bool isDarkMode) {
+  Widget _buildFlashSalesList(String status, bool isDarkMode) {
     return Consumer<FlashSaleProvider>(
       builder: (context, flashSaleProvider, child) {
-        if (flashSaleProvider.isLoading) {
-          return const Center(child: CircularProgressIndicator());
-        }
-
-        List<FlashSale> flashSales;
-        switch (type) {
-          case 'active':
-            flashSales = flashSaleProvider.activeFlashSales;
-            break;
-          case 'upcoming':
-            flashSales = flashSaleProvider.upcomingFlashSales;
-            break;
-          case 'expired':
-            flashSales = flashSaleProvider.expiredFlashSales;
-            break;
-          default:
-            flashSales = [];
-        }
+        final flashSales = flashSaleProvider.getFlashSalesByStatus(status);
 
         if (flashSales.isEmpty) {
-          return _buildEmptyState(type, isDarkMode);
+          return _buildEmptyState(status, isDarkMode);
         }
 
         return ListView.builder(
@@ -229,14 +153,14 @@ class _AdminFlashSalesScreenState extends State<AdminFlashSalesScreen> with Sing
     );
   }
 
-  Widget _buildEmptyState(String type, bool isDarkMode) {
+  Widget _buildEmptyState(String status, bool isDarkMode) {
     String message;
     IconData icon;
-    
-    switch (type) {
+
+    switch (status) {
       case 'active':
         message = 'No active flash sales';
-        icon = Icons.flash_off;
+        icon = Icons.flash_on;
         break;
       case 'upcoming':
         message = 'No upcoming flash sales';
@@ -248,7 +172,7 @@ class _AdminFlashSalesScreenState extends State<AdminFlashSalesScreen> with Sing
         break;
       default:
         message = 'No flash sales';
-        icon = Icons.flash_off;
+        icon = Icons.flash_on;
     }
 
     return Center(
@@ -258,7 +182,7 @@ class _AdminFlashSalesScreenState extends State<AdminFlashSalesScreen> with Sing
           Icon(
             icon,
             size: 80,
-            color: AppColors.getTextColor(isDarkMode).withOpacity(0.5),
+            color: AppColors.getTextColor(isDarkMode).withValues(alpha: 0.5),
           ),
           const SizedBox(height: 16),
           Text(
@@ -272,7 +196,7 @@ class _AdminFlashSalesScreenState extends State<AdminFlashSalesScreen> with Sing
           Text(
             'Create a new flash sale to get started',
             style: TextStyle(
-              color: AppColors.getTextColor(isDarkMode).withOpacity(0.7),
+              color: AppColors.getTextColor(isDarkMode).withValues(alpha: 0.7),
             ),
           ),
           const SizedBox(height: 24),
@@ -291,7 +215,7 @@ class _AdminFlashSalesScreenState extends State<AdminFlashSalesScreen> with Sing
   }
 
   Widget _buildFlashSaleCard(FlashSale flashSale, bool isDarkMode) {
-    final Color bannerColor = flashSale.bannerColor != null 
+    final Color bannerColor = flashSale.bannerColor != null
         ? Color(int.parse(flashSale.bannerColor!.replaceFirst('#', '0xff')))
         : AppColors.primary;
 
@@ -306,132 +230,53 @@ class _AdminFlashSalesScreenState extends State<AdminFlashSalesScreen> with Sing
           // Banner Image with Overlay
           Container(
             height: 120,
+            width: double.infinity,
             decoration: BoxDecoration(
               borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-              gradient: LinearGradient(
-                colors: [bannerColor, bannerColor.withOpacity(0.8)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
+              image: flashSale.imageUrl.isNotEmpty
+                  ? DecorationImage(
+                      image: flashSale.imageUrl.startsWith('file://')
+                          ? FileImage(File(flashSale.imageUrl.replaceFirst('file://', '')))
+                          : NetworkImage(flashSale.imageUrl) as ImageProvider,
+                      fit: BoxFit.cover,
+                    )
+                  : null,
+              color: bannerColor,
+            ),
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.black.withValues(alpha: 0.3),
+                    Colors.black.withValues(alpha: 0.7),
+                  ],
+                ),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      flashSale.title,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const Spacer(),
+                    _buildTimer(flashSale),
+                  ],
+                ),
               ),
             ),
-            child: Stack(
-              children: [
-                // Background Pattern
-                Positioned.fill(
-                  child: Container(
-                    decoration: BoxDecoration(
-                      borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-                      image: flashSale.imageUrl.isNotEmpty
-                          ? DecorationImage(
-                              image: NetworkImage(flashSale.imageUrl),
-                              fit: BoxFit.cover,
-                              colorFilter: ColorFilter.mode(
-                                bannerColor.withOpacity(0.3),
-                                BlendMode.overlay,
-                              ),
-                            )
-                          : null,
-                    ),
-                  ),
-                ),
-                
-                // Content Overlay
-                Positioned.fill(
-                  child: Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-                      gradient: LinearGradient(
-                        colors: [
-                          Colors.black.withOpacity(0.3),
-                          Colors.transparent,
-                        ],
-                        begin: Alignment.bottomCenter,
-                        end: Alignment.topCenter,
-                      ),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: _getStatusColor(flashSale),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Text(
-                                _getStatusText(flashSale),
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                            const Spacer(),
-                            PopupMenuButton<String>(
-                              onSelected: (value) => _handleMenuAction(value, flashSale),
-                              itemBuilder: (context) => [
-                                const PopupMenuItem(
-                                  value: 'edit',
-                                  child: ListTile(
-                                    leading: Icon(Icons.edit),
-                                    title: Text('Edit'),
-                                    contentPadding: EdgeInsets.zero,
-                                  ),
-                                ),
-                                PopupMenuItem(
-                                  value: 'toggle',
-                                  child: ListTile(
-                                    leading: Icon(
-                                      flashSale.isActive ? Icons.pause : Icons.play_arrow,
-                                    ),
-                                    title: Text(flashSale.isActive ? 'Deactivate' : 'Activate'),
-                                    contentPadding: EdgeInsets.zero,
-                                  ),
-                                ),
-                                const PopupMenuItem(
-                                  value: 'delete',
-                                  child: ListTile(
-                                    leading: Icon(Icons.delete, color: Colors.red),
-                                    title: Text('Delete', style: TextStyle(color: Colors.red)),
-                                    contentPadding: EdgeInsets.zero,
-                                  ),
-                                ),
-                              ],
-                              icon: const Icon(Icons.more_vert, color: Colors.white),
-                            ),
-                          ],
-                        ),
-                        const Spacer(),
-                        Text(
-                          flashSale.title,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        Text(
-                          '${flashSale.discountPercentage}% OFF',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
           ),
-          
           // Content
           Padding(
             padding: const EdgeInsets.all(16),
@@ -441,126 +286,61 @@ class _AdminFlashSalesScreenState extends State<AdminFlashSalesScreen> with Sing
                 Text(
                   flashSale.description,
                   style: TextStyle(
-                    color: AppColors.getTextColor(isDarkMode).withOpacity(0.8),
+                    color: AppColors.getTextColor(isDarkMode),
                     fontSize: 14,
                   ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(height: 12),
-                
-                // Timer/Status Row
-                if (flashSale.isLive || flashSale.isUpcoming)
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: flashSale.isLive ? Colors.red.withOpacity(0.1) : Colors.orange.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: flashSale.isLive ? Colors.red : Colors.orange,
-                        width: 1,
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          flashSale.isLive ? Icons.timer : Icons.schedule,
-                          color: flashSale.isLive ? Colors.red : Colors.orange,
-                          size: 20,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          flashSale.isLive ? 'Ends in: ' : 'Starts in: ',
-                          style: TextStyle(
-                            color: flashSale.isLive ? Colors.red : Colors.orange,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        Consumer<FlashSaleProvider>(
-                          builder: (context, provider, child) {
-                            return Text(
-                              provider.formatCountdown(flashSale.timeRemaining),
-                              style: TextStyle(
-                                color: flashSale.isLive ? Colors.red : Colors.orange,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                              ),
-                            );
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-                
-                const SizedBox(height: 12),
-                
-                // Progress Bar (if max items set)
-                if (flashSale.maxItems != null) ...[
-                  Row(
-                    children: [
-                      Text(
-                        'Items Sold: ${flashSale.soldItems}/${flashSale.maxItems}',
-                        style: TextStyle(
-                          color: AppColors.getTextColor(isDarkMode),
-                          fontSize: 12,
-                        ),
-                      ),
-                      const Spacer(),
-                      Text(
-                        '${flashSale.percentageSold.toStringAsFixed(1)}%',
-                        style: TextStyle(
-                          color: AppColors.getTextColor(isDarkMode),
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  LinearProgressIndicator(
-                    value: flashSale.percentageSold / 100,
-                    backgroundColor: Colors.grey.withOpacity(0.3),
-                    valueColor: AlwaysStoppedAnimation<Color>(
-                      flashSale.percentageSold > 80 ? Colors.red : AppColors.primary,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                ],
-                
-                // Details Row
+                const SizedBox(height: 8),
                 Row(
                   children: [
-                    if (flashSale.productIds.isNotEmpty) ...[
-                      Icon(
-                        Icons.inventory,
-                        size: 16,
-                        color: AppColors.getTextColor(isDarkMode).withOpacity(0.6),
+                    Icon(
+                      Icons.access_time,
+                      size: 16,
+                      color: AppColors.getTextColor(isDarkMode).withValues(alpha: 0.7),
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      '${flashSale.startTime.toString().split(' ')[0]} - ${flashSale.endTime.toString().split(' ')[0]}',
+                      style: TextStyle(
+                        color: AppColors.getTextColor(isDarkMode).withValues(alpha: 0.7),
+                        fontSize: 12,
                       ),
-                      const SizedBox(width: 4),
-                      Text(
-                        '${flashSale.productIds.length} products',
-                        style: TextStyle(
-                          color: AppColors.getTextColor(isDarkMode).withOpacity(0.6),
-                          fontSize: 12,
+                    ),
+                    const Spacer(),
+                    PopupMenuButton<String>(
+                      onSelected: (value) => _handleMenuAction(value, flashSale),
+                      itemBuilder: (context) => [
+                        const PopupMenuItem(
+                          value: 'edit',
+                          child: ListTile(
+                            leading: Icon(Icons.edit),
+                            title: Text('Edit'),
+                            contentPadding: EdgeInsets.zero,
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 16),
-                    ],
-                    if (flashSale.categoryIds.isNotEmpty) ...[
-                      Icon(
-                        Icons.category,
-                        size: 16,
-                        color: AppColors.getTextColor(isDarkMode).withOpacity(0.6),
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        '${flashSale.categoryIds.length} categories',
-                        style: TextStyle(
-                          color: AppColors.getTextColor(isDarkMode).withOpacity(0.6),
-                          fontSize: 12,
+                        PopupMenuItem(
+                          value: 'toggle',
+                          child: ListTile(
+                            leading: Icon(
+                              flashSale.isActive ? Icons.pause : Icons.play_arrow,
+                            ),
+                            title: Text(flashSale.isActive ? 'Deactivate' : 'Activate'),
+                            contentPadding: EdgeInsets.zero,
+                          ),
                         ),
-                      ),
-                    ],
+                        const PopupMenuItem(
+                          value: 'delete',
+                          child: ListTile(
+                            leading: Icon(Icons.delete, color: Colors.red),
+                            title: Text('Delete', style: TextStyle(color: Colors.red)),
+                            contentPadding: EdgeInsets.zero,
+                          ),
+                        ),
+                      ],
+                      icon: const Icon(Icons.more_vert, color: Colors.grey),
+                    ),
                   ],
                 ),
               ],
@@ -571,31 +351,53 @@ class _AdminFlashSalesScreenState extends State<AdminFlashSalesScreen> with Sing
     );
   }
 
-  String _getStatusText(FlashSale flashSale) {
-    if (flashSale.isLive) return 'LIVE';
-    if (flashSale.isUpcoming) return 'UPCOMING';
-    if (flashSale.isExpired) return 'EXPIRED';
-    return 'INACTIVE';
+  Widget _buildTimer(FlashSale flashSale) {
+    final now = DateTime.now();
+    Duration remaining;
+
+    if (flashSale.isExpired) {
+      return const Text(
+        'Expired',
+        style: TextStyle(
+          color: Colors.red,
+          fontSize: 12,
+          fontWeight: FontWeight.bold,
+        ),
+      );
+    } else if (flashSale.isUpcoming) {
+      remaining = flashSale.startTime.difference(now);
+      return Text(
+        'Starts in: ${_formatDuration(remaining)}',
+        style: const TextStyle(
+          color: Colors.orange,
+          fontSize: 12,
+          fontWeight: FontWeight.bold,
+        ),
+      );
+    } else {
+      remaining = flashSale.endTime.difference(now);
+      return Text(
+        'Ends in: ${_formatDuration(remaining)}',
+        style: const TextStyle(
+          color: Colors.red,
+          fontSize: 12,
+          fontWeight: FontWeight.bold,
+        ),
+      );
+    }
   }
 
-  Color _getStatusColor(FlashSale flashSale) {
-    if (flashSale.isLive) return Colors.red;
-    if (flashSale.isUpcoming) return Colors.orange;
-    if (flashSale.isExpired) return Colors.grey;
-    return Colors.grey;
-  }
+  String _formatDuration(Duration duration) {
+    final days = duration.inDays;
+    final hours = duration.inHours % 24;
+    final minutes = duration.inMinutes % 60;
 
-  void _handleMenuAction(String action, FlashSale flashSale) {
-    switch (action) {
-      case 'edit':
-        _navigateToEditFlashSale(flashSale);
-        break;
-      case 'toggle':
-        _toggleFlashSaleStatus(flashSale);
-        break;
-      case 'delete':
-        _showDeleteConfirmDialog(flashSale);
-        break;
+    if (days > 0) {
+      return '${days}d ${hours}h';
+    } else if (hours > 0) {
+      return '${hours}h ${minutes}m';
+    } else {
+      return '${minutes}m';
     }
   }
 
@@ -615,19 +417,28 @@ class _AdminFlashSalesScreenState extends State<AdminFlashSalesScreen> with Sing
     );
   }
 
+  void _handleMenuAction(String action, FlashSale flashSale) {
+    switch (action) {
+      case 'edit':
+        _navigateToEditFlashSale(flashSale);
+        break;
+      case 'toggle':
+        _toggleFlashSaleStatus(flashSale);
+        break;
+      case 'delete':
+        _showDeleteConfirmDialog(flashSale);
+        break;
+    }
+  }
+
   void _toggleFlashSaleStatus(FlashSale flashSale) async {
     final provider = Provider.of<FlashSaleProvider>(context, listen: false);
     final success = await provider.toggleFlashSaleStatus(flashSale.id);
-    
-    if (mounted) {
+    if (success && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            success 
-                ? 'Flash sale ${flashSale.isActive ? 'deactivated' : 'activated'}'
-                : 'Failed to update flash sale status',
-          ),
-          backgroundColor: success ? Colors.green : Colors.red,
+          content: Text('Flash sale ${flashSale.isActive ? 'deactivated' : 'activated'}'),
+          backgroundColor: Colors.green,
         ),
       );
     }
@@ -641,30 +452,29 @@ class _AdminFlashSalesScreenState extends State<AdminFlashSalesScreen> with Sing
         content: Text('Are you sure you want to delete "${flashSale.title}"?'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.of(context).pop(),
             child: const Text('Cancel'),
           ),
-          ElevatedButton(
+          TextButton(
             onPressed: () async {
-              Navigator.pop(context);
+              Navigator.of(context).pop();
               final provider = Provider.of<FlashSaleProvider>(context, listen: false);
               final success = await provider.deleteFlashSale(flashSale.id);
-              
-              if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      success 
-                          ? 'Flash sale deleted successfully'
-                          : 'Failed to delete flash sale',
-                    ),
-                    backgroundColor: success ? Colors.green : Colors.red,
-                  ),
-                );
+              if (success && mounted) {
+                // Use a post-frame callback to safely show the SnackBar
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Flash sale deleted'),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                  }
+                });
               }
             },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('Delete', style: TextStyle(color: Colors.white)),
+            child: const Text('Delete', style: TextStyle(color: Colors.red)),
           ),
         ],
       ),

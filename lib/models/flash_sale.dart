@@ -16,6 +16,7 @@ class FlashSale {
   final int soldItems; // Items sold so far
   final String? bannerColor; // Custom banner color
   final String type; // 'percentage', 'fixed_amount', 'buy_one_get_one'
+  final String? actionUrl; // Navigation route when banner is clicked
 
   FlashSale({
     required this.id,
@@ -35,6 +36,7 @@ class FlashSale {
     this.soldItems = 0,
     this.bannerColor,
     this.type = 'percentage',
+    this.actionUrl,
   });
 
   // Check if sale is expired (dynamic)
@@ -100,6 +102,7 @@ class FlashSale {
       'soldItems': soldItems,
       'bannerColor': bannerColor,
       'type': type,
+      'actionUrl': actionUrl,
     };
   }
 
@@ -122,6 +125,7 @@ class FlashSale {
       soldItems: json['soldItems'] ?? 0,
       bannerColor: json['bannerColor'],
       type: json['type'] ?? 'percentage',
+      actionUrl: json['actionUrl'],
     );
   }
 
@@ -143,6 +147,7 @@ class FlashSale {
     int? soldItems,
     String? bannerColor,
     String? type,
+    String? actionUrl,
   }) {
     return FlashSale(
       id: id ?? this.id,
@@ -162,6 +167,7 @@ class FlashSale {
       soldItems: soldItems ?? this.soldItems,
       bannerColor: bannerColor ?? this.bannerColor,
       type: type ?? this.type,
+      actionUrl: actionUrl ?? this.actionUrl,
     );
   }
 }

@@ -1,11 +1,18 @@
 import 'package:flutter/foundation.dart';
 import '../models/product.dart';
 import '../services/product_service.dart';
+import '../services/product_bot_service.dart';
 
 class ProductProvider with ChangeNotifier {
   final ProductService _productService = ProductService();
+  ProductBotService? _botService;
   
   List<Product> _products = [];
+  
+  // Set bot service (to be injected)
+  void setBotService(ProductBotService botService) {
+    _botService = botService;
+  }
   List<Product> _filteredProducts = [];
   bool _isLoading = false;
   String _searchQuery = '';
@@ -74,6 +81,11 @@ class ProductProvider with ChangeNotifier {
       _products.add(product);
       _applyFilters();
       notifyListeners();
+      
+      // 🤖 Trigger bot to auto-post product to customer feed after 5 seconds
+      if (_botService != null && product.isActive) {
+        _botService!.autoPostProduct(product, delay: const Duration(seconds: 5));
+      }
     } catch (e) {
       if (kDebugMode) {
         print('Error adding product: $e');

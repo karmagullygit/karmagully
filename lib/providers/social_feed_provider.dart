@@ -237,6 +237,13 @@ class SocialFeedProvider extends ChangeNotifier {
     }
   }
 
+  // Add bot post directly (for ProductBotService)
+  void addBotPost(SocialPost post) {
+    _posts.insert(0, post);
+    notifyListeners();
+    _savePosts();
+  }
+
   // Like/unlike a post
   Future<void> toggleLike(String postId) async {
     final postIndex = _posts.indexWhere((post) => post.id == postId);
@@ -488,9 +495,9 @@ class SocialFeedProvider extends ChangeNotifier {
         SocialPost(
           id: 'post_1',
           userId: 'user_2',
-          username: 'alex_photographer',
-          userAvatar: '📸',
-          userDisplayName: 'Alex Chen',
+          username: 'emma',
+          userAvatar: '👩',
+          userDisplayName: 'Emma Wilson',
           content: 'Just captured this incredible moment! Photography is all about timing and patience. What do you think? 📷✨ #photography #nature #moment',
           type: PostType.text,
           createdAt: now.subtract(const Duration(hours: 2)),
@@ -504,9 +511,9 @@ class SocialFeedProvider extends ChangeNotifier {
         SocialPost(
           id: 'post_2',
           userId: 'user_3',
-          username: 'sarah_foodie',
-          userAvatar: '🍕',
-          userDisplayName: 'Sarah Johnson',
+          username: 'david',
+          userAvatar: '👨',
+          userDisplayName: 'David Chen',
           content: 'Made this delicious homemade pizza tonight! 🍕 The secret is in the dough - let it rise for at least 24 hours. Recipe in comments! #cooking #pizza #homemade',
           type: PostType.text,
           createdAt: now.subtract(const Duration(hours: 4)),
@@ -520,9 +527,9 @@ class SocialFeedProvider extends ChangeNotifier {
         SocialPost(
           id: 'post_3',
           userId: 'user_4',
-          username: 'mike_traveler',
-          userAvatar: '✈️',
-          userDisplayName: 'Mike Wilson',
+          username: 'lisa',
+          userAvatar: '👩‍💼',
+          userDisplayName: 'Lisa Anderson',
           content: 'Just landed in Tokyo! 🗾 The city is absolutely amazing. Can\'t wait to explore more tomorrow. Any recommendations for must-visit places? #travel #tokyo #japan',
           type: PostType.text,
           createdAt: now.subtract(const Duration(hours: 6)),
@@ -530,15 +537,15 @@ class SocialFeedProvider extends ChangeNotifier {
           likesCount: 67,
           commentsCount: 18,
           viewsCount: 423,
-          likedBy: ['user_1', 'user_2', 'user_3', 'user_5', 'user_6'],
+          likedBy: ['user_1', 'user_2', 'user_3', 'user_5'],
           tags: ['travel', 'tokyo', 'japan'],
         ),
         SocialPost(
           id: 'post_4',
           userId: 'user_5',
-          username: 'emma_fitness',
-          userAvatar: '💪',
-          userDisplayName: 'Emma Rodriguez',
+          username: 'maria',
+          userAvatar: '👩‍🦰',
+          userDisplayName: 'Maria Garcia',
           content: 'Morning workout completed! 💪 Remember, consistency is key. Start your day with energy! #fitness #motivation #workout',
           type: PostType.image,
           mediaUrls: ['https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=800'],
@@ -621,6 +628,129 @@ class SocialFeedProvider extends ChangeNotifier {
           viewsCount: 1890,
           likedBy: [],
           tags: ['baking', 'cake', 'dessert'],
+        ),
+        // Additional posts for Maria Garcia
+        SocialPost(
+          id: 'post_9',
+          userId: 'user_5',
+          username: 'maria',
+          userAvatar: '👩‍🦰',
+          userDisplayName: 'Maria Garcia',
+          content: 'Beautiful sunset today! 🌅 Nature never fails to amaze me. #sunset #nature #photography',
+          type: PostType.text,
+          createdAt: now.subtract(const Duration(days: 2)),
+          updatedAt: now.subtract(const Duration(days: 2)),
+          likesCount: 89,
+          commentsCount: 15,
+          sharesCount: 7,
+          viewsCount: 567,
+          likedBy: ['user_1', 'user_2', 'user_3'],
+          tags: ['sunset', 'nature', 'photography'],
+        ),
+        SocialPost(
+          id: 'post_10',
+          userId: 'user_5',
+          username: 'maria',
+          userAvatar: '👩‍🦰',
+          userDisplayName: 'Maria Garcia',
+          content: 'Coffee and coding - perfect Monday morning ☕💻 #developer #coffee #mondaymotivation',
+          type: PostType.text,
+          createdAt: now.subtract(const Duration(days: 5)),
+          updatedAt: now.subtract(const Duration(days: 5)),
+          likesCount: 134,
+          commentsCount: 22,
+          sharesCount: 11,
+          viewsCount: 892,
+          likedBy: ['user_2', 'user_3', 'user_4'],
+          tags: ['developer', 'coffee', 'mondaymotivation'],
+        ),
+        // Additional posts for Lisa Anderson
+        SocialPost(
+          id: 'post_11',
+          userId: 'user_4',
+          username: 'lisa',
+          userAvatar: '👩‍💼',
+          userDisplayName: 'Lisa Anderson',
+          content: 'Just finished reading an amazing book! 📚 Highly recommend "The Art of Thinking". #books #reading #learning',
+          type: PostType.text,
+          createdAt: now.subtract(const Duration(days: 3)),
+          updatedAt: now.subtract(const Duration(days: 3)),
+          likesCount: 76,
+          commentsCount: 18,
+          sharesCount: 9,
+          viewsCount: 445,
+          likedBy: ['user_1', 'user_5'],
+          tags: ['books', 'reading', 'learning'],
+        ),
+        SocialPost(
+          id: 'post_12',
+          userId: 'user_4',
+          username: 'lisa',
+          userAvatar: '👩‍💼',
+          userDisplayName: 'Lisa Anderson',
+          content: 'Weekend hiking adventure! ⛰️ The view from the top was absolutely worth the climb. #hiking #outdoors #adventure',
+          type: PostType.text,
+          createdAt: now.subtract(const Duration(days: 7)),
+          updatedAt: now.subtract(const Duration(days: 7)),
+          likesCount: 156,
+          commentsCount: 31,
+          sharesCount: 14,
+          viewsCount: 1023,
+          likedBy: ['user_2', 'user_3', 'user_5'],
+          tags: ['hiking', 'outdoors', 'adventure'],
+        ),
+        // Additional posts for David Chen
+        SocialPost(
+          id: 'post_13',
+          userId: 'user_3',
+          username: 'david',
+          userAvatar: '👨',
+          userDisplayName: 'David Chen',
+          content: 'New recipe alert! 🍜 Just made the best ramen from scratch. Recipe coming soon! #cooking #ramen #foodie',
+          type: PostType.text,
+          createdAt: now.subtract(const Duration(days: 1)),
+          updatedAt: now.subtract(const Duration(days: 1)),
+          likesCount: 198,
+          commentsCount: 45,
+          sharesCount: 23,
+          viewsCount: 1456,
+          likedBy: ['user_1', 'user_4', 'user_5'],
+          tags: ['cooking', 'ramen', 'foodie'],
+        ),
+        SocialPost(
+          id: 'post_14',
+          userId: 'user_3',
+          username: 'david',
+          userAvatar: '👨',
+          userDisplayName: 'David Chen',
+          content: 'Gym session complete! 💪 Progress is progress, no matter how small. #fitness #gym #progress',
+          type: PostType.text,
+          createdAt: now.subtract(const Duration(days: 4)),
+          updatedAt: now.subtract(const Duration(days: 4)),
+          likesCount: 112,
+          commentsCount: 27,
+          sharesCount: 8,
+          viewsCount: 734,
+          likedBy: ['user_2', 'user_5'],
+          tags: ['fitness', 'gym', 'progress'],
+        ),
+        // Additional posts for Emma Wilson
+        SocialPost(
+          id: 'post_15',
+          userId: 'user_2',
+          username: 'emma',
+          userAvatar: '👩',
+          userDisplayName: 'Emma Wilson',
+          content: 'Starting a new project today! 🚀 Super excited about this one. #business #startup #entrepreneur',
+          type: PostType.text,
+          createdAt: now.subtract(const Duration(hours: 18)),
+          updatedAt: now.subtract(const Duration(hours: 18)),
+          likesCount: 234,
+          commentsCount: 56,
+          sharesCount: 34,
+          viewsCount: 1789,
+          likedBy: ['user_1', 'user_3', 'user_4', 'user_5'],
+          tags: ['business', 'startup', 'entrepreneur'],
         ),
       ];
 
@@ -708,6 +838,12 @@ class SocialFeedProvider extends ChangeNotifier {
     }).toList();
     notifyListeners();
     await _savePosts();
+  }
+
+  // Get posts by user (using user ID)
+  List<SocialPost> getUserPosts(String userId) {
+    // Filter posts by userId
+    return _posts.where((post) => post.userId == userId).toList();
   }
 
   // Toggle user verification status

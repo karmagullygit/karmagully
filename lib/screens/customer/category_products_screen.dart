@@ -5,6 +5,7 @@ import '../../providers/product_provider.dart';
 import '../../providers/theme_provider.dart';
 import '../../constants/app_colors.dart';
 import '../../widgets/product_card.dart';
+import '../../widgets/promotional_banner_widget.dart';
 
 class CategoryProductsScreen extends StatefulWidget {
   final Category category;
@@ -40,19 +41,29 @@ class _CategoryProductsScreenState extends State<CategoryProductsScreen> {
             backgroundColor: Color(int.parse(widget.category.colorCode.replaceFirst('#', '0xff'))),
             foregroundColor: Colors.white,
           ),
-          body: Consumer<ProductProvider>(
-            builder: (context, productProvider, child) {
-              if (productProvider.isLoading) {
-                return const Center(child: CircularProgressIndicator());
-              }
+          body: Column(
+            children: [
+              // Promotional Banner
+              PromotionalBannerWidget(
+                page: 'category',
+                category: widget.category.name,
+              ),
+              
+              // Main Content
+              Expanded(
+                child: Consumer<ProductProvider>(
+                  builder: (context, productProvider, child) {
+                    if (productProvider.isLoading) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
 
-              // Filter products by category
-              final categoryProducts = productProvider.products
-                  .where((product) => product.category == widget.category.name)
-                  .toList();
+                    // Filter products by category
+                    final categoryProducts = productProvider.products
+                        .where((product) => product.category == widget.category.name)
+                        .toList();
 
-              if (categoryProducts.isEmpty) {
-                return Center(
+                    if (categoryProducts.isEmpty) {
+                      return Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -91,20 +102,23 @@ class _CategoryProductsScreenState extends State<CategoryProductsScreen> {
                 );
               }
 
-              return GridView.builder(
-                padding: const EdgeInsets.all(16),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  childAspectRatio: 0.75,
-                  crossAxisSpacing: 12,
-                  mainAxisSpacing: 12,
+                    return GridView.builder(
+                      padding: const EdgeInsets.all(16),
+                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2,
+                        childAspectRatio: 0.75,
+                        crossAxisSpacing: 12,
+                        mainAxisSpacing: 12,
+                      ),
+                      itemCount: categoryProducts.length,
+                      itemBuilder: (context, index) {
+                        return ProductCard(product: categoryProducts[index]);
+                      },
+                    );
+                  },
                 ),
-                itemCount: categoryProducts.length,
-                itemBuilder: (context, index) {
-                  return ProductCard(product: categoryProducts[index]);
-                },
-              );
-            },
+              ),
+            ],
           ),
         );
       },

@@ -16,8 +16,11 @@ import '../../providers/app_analytics_provider.dart';
 import '../../providers/recommendation_provider.dart';
 import '../../providers/feature_settings_provider.dart';
 import '../../providers/product_section_provider.dart';
+import '../../providers/video_ad_provider.dart';
 import '../../utils/responsive_utils.dart';
 import '../../widgets/chatbot_widget.dart';
+import '../../widgets/flash_sale_banner.dart';
+import '../../widgets/floating_ad_player.dart';
 import 'profile_screen.dart';
 import 'wishlist_screen.dart';
 import 'category_products_screen.dart';
@@ -70,6 +73,9 @@ class _HomeScreenState extends State<HomeScreen> {
       // Load flash sales (don't reset - preserve admin added flash sales)
       final flashSaleProvider = Provider.of<FlashSaleProvider>(context, listen: false);
       flashSaleProvider.loadFlashSales();
+      
+      // Load video ads
+      Provider.of<VideoAdProvider>(context, listen: false).loadVideoAds();
     });
   }
 
@@ -109,11 +115,17 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildHomeContent() {
-    return EmojiPetalRain(
+    return Consumer<ThemeProvider>(
+      builder: (context, themeProvider, child) {
+        final isDarkMode = themeProvider.isDarkMode;
+        final backgroundColor = isDarkMode ? const Color(0xFF0A0E27) : const Color(0xFFFAFAFA);
+        final textColor = isDarkMode ? Colors.white : Colors.black87;
+        
+        return EmojiPetalRain(
       child: Stack(
         children: [
-          // Top-right gradient overlay like in the reference image
-          Positioned(
+          // Top-right gradient overlay like in the reference image - only in dark mode
+          if (isDarkMode) Positioned(
           top: 0,
           right: 0,
           child: Container(
@@ -134,27 +146,26 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
         ),
-        // Dark base background
+        // Background color based on theme
         Container(
-          color: const Color(0xFF0A0E27),
+          color: backgroundColor,
           child: SafeArea(
             child: Consumer<FeatureSettingsProvider>(
               builder: (context, featureSettings, child) {
                 return CustomScrollView(
                   controller: _scrollController,
                   slivers: [
-                    _buildAppBar(context, true), // Force dark mode
-                    _buildSearchSection(context, true),
+                    _buildAppBar(context, isDarkMode),
+                    _buildSearchSection(context, isDarkMode),
                     // Only show other sections when not searching
                     if (_searchQuery.isEmpty) ...[
-                      _buildCarouselSection(context, true),
-                      _buildFlashSalesSection(context, true),
-                      _buildCategoriesSection(context, true),
-                      if (featureSettings.customerFeedEnabled)
-                        _buildSocialFeedPreviewSection(context, true),
-                      _buildFeaturedSection(context, true),
+                      _buildCarouselSection(context, isDarkMode),
+                      _buildFlashSalesSection(context, isDarkMode),
+                      _buildCategoriesSection(context, isDarkMode),
+                      // Community Feed section removed
+                      _buildFeaturedSection(context, isDarkMode),
                       SliverToBoxAdapter(
-                        child: _buildProductSections(context),
+                        child: _buildProductSections(context, isDarkMode),
                       ),
                     ] else ...[
                       // Show search results header when searching
@@ -169,13 +180,13 @@ class _HomeScreenState extends State<HomeScreen> {
                             style: TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.bold,
-                              color: Colors.white,
+                              color: textColor,
                             ),
                           ),
                         ),
                       ),
                     ],
-                    _buildProductGrid(context, true),
+                    _buildProductGrid(context, isDarkMode),
                     const SliverToBoxAdapter(child: SizedBox(height: 100)),
                   ],
                 );
@@ -191,31 +202,50 @@ class _HomeScreenState extends State<HomeScreen> {
       ],
       ),
     );
+      },
+    );
   }
 
   Widget _buildSearchContent() {
-    return Container(
-      color: const Color(0xFF0A0E27),
+    return Consumer<ThemeProvider>(
+      builder: (context, themeProvider, child) {
+        final isDarkMode = themeProvider.isDarkMode;
+        final backgroundColor = isDarkMode ? const Color(0xFF0A0E27) : const Color(0xFFFAFAFA);
+        
+        return Container(
+      color: backgroundColor,
       child: SafeArea(
         child: CustomScrollView(
           slivers: [
-            _buildAppBar(context, true),
-            _buildSearchSection(context, true),
-            _buildProductGrid(context, true),
+            _buildAppBar(context, isDarkMode),
+            _buildSearchSection(context, isDarkMode),
+            _buildProductGrid(context, isDarkMode),
             const SliverToBoxAdapter(child: SizedBox(height: 100)),
           ],
         ),
       ),
     );
+      },
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<ThemeProvider>(
-      builder: (context, themeProvider, child) {
+    return Consumer2<ThemeProvider, VideoAdProvider>(
+      builder: (context, themeProvider, videoAdProvider, child) {
+        final isDarkMode = themeProvider.isDarkMode;
+        final backgroundColor = isDarkMode ? const Color(0xFF0A0E27) : const Color(0xFFFAFAFA);
+        
         return Scaffold(
-          backgroundColor: const Color(0xFF0A0E27),
-          body: _getCurrentScreenContent(),
+          backgroundColor: backgroundColor,
+          body: Stack(
+            children: [
+              _getCurrentScreenContent(),
+              // Floating Ad Player - only show on home page
+              if (_currentPageIndex == 0 && videoAdProvider.isPlayerVisible)
+                const FloatingAdPlayer(),
+            ],
+          ),
           // Remove conflicting FloatingActionButton - chatbot has its own
           // floatingActionButton: _buildFloatingCart(context, true),
           bottomNavigationBar: _buildNewBottomNavigationBar(context),
@@ -225,6 +255,12 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildSearchSection(BuildContext context, bool isDarkMode) {
+    final searchBgColor = isDarkMode ? const Color(0xFF1A1F3A) : Colors.white;
+    final borderColor = isDarkMode ? const Color(0xFF5B4FCF) : Colors.blue;
+    final textColor = isDarkMode ? const Color(0xFFB4B0C8) : Colors.black87;
+    final hintColor = isDarkMode ? const Color(0xFF6B677A) : Colors.grey;
+    final iconColor = isDarkMode ? const Color(0xFF8B7FD8) : Colors.blue;
+    
     return SliverToBoxAdapter(
       child: Padding(
         padding: EdgeInsets.fromLTRB(
@@ -236,15 +272,15 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Container(
           height: 56,
           decoration: BoxDecoration(
-            color: const Color(0xFF1A1F3A),
+            color: searchBgColor,
             borderRadius: BorderRadius.circular(28),
             border: Border.all(
-              color: const Color(0xFF5B4FCF),
+              color: borderColor,
               width: 2,
             ),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF5B4FCF).withOpacity(0.5),
+                color: borderColor.withOpacity(0.5),
                 blurRadius: 20,
                 offset: const Offset(0, 4),
               ),
@@ -253,12 +289,12 @@ class _HomeScreenState extends State<HomeScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 20),
           child: Row(
             children: [
-              const Icon(Icons.search, color: Color(0xFF8B7FD8), size: 24),
+              Icon(Icons.search, color: iconColor, size: 24),
               const SizedBox(width: 12),
               Expanded(
                 child: TextField(
                   controller: _searchController,
-                  style: const TextStyle(color: Color(0xFFB4B0C8), fontSize: 16),
+                  style: TextStyle(color: textColor, fontSize: 16),
                   onChanged: (value) {
                     setState(() {
                       _searchQuery = value;
@@ -273,14 +309,14 @@ class _HomeScreenState extends State<HomeScreen> {
                       metadata: {'query': query},
                     );
                   },
-                  cursorColor: const Color(0xFF8B7FD8),
-                  decoration: const InputDecoration(
+                  cursorColor: iconColor,
+                  decoration: InputDecoration(
                     border: InputBorder.none,
                     enabledBorder: InputBorder.none,
                     focusedBorder: InputBorder.none,
                     filled: false,
                     hintText: 'Search products...',
-                    hintStyle: TextStyle(color: Color(0xFF6B677A), fontSize: 16),
+                    hintStyle: TextStyle(color: hintColor, fontSize: 16),
                     contentPadding: EdgeInsets.zero,
                     isDense: true,
                   ),
@@ -294,9 +330,9 @@ class _HomeScreenState extends State<HomeScreen> {
                       _searchQuery = '';
                     });
                   },
-                  child: const Padding(
-                    padding: EdgeInsets.all(8.0),
-                    child: Icon(Icons.clear, color: Colors.white70, size: 20),
+                  child: Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Icon(Icons.clear, color: isDarkMode ? Colors.white70 : Colors.black54, size: 20),
                   ),
                 ),
               const SizedBox(width: 4),
@@ -306,16 +342,16 @@ class _HomeScreenState extends State<HomeScreen> {
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
-                    color: const Color(0xFF5B4FCF),
+                    color: borderColor,
                     borderRadius: BorderRadius.circular(12),
                     boxShadow: [
                       BoxShadow(
-                        color: const Color(0xFF5B4FCF).withOpacity(0.4),
+                        color: borderColor.withOpacity(0.4),
                         blurRadius: 12,
                       ),
                     ],
                   ),
-                  child: const Icon(Icons.tune, color: Colors.white, size: 20),
+                  child: Icon(Icons.tune, color: isDarkMode ? Colors.white : Colors.black87, size: 20),
                 ),
               ),
             ],
@@ -331,334 +367,300 @@ class _HomeScreenState extends State<HomeScreen> {
         builder: (context, flashSaleProvider, child) {
           final activeFlashSales = flashSaleProvider.activeFlashSales;
           
-          // Only show the entire section if there are active flash sales
           if (activeFlashSales.isEmpty) {
             return const SizedBox.shrink();
           }
           
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header with LIVE indicator and neon styling
-              Padding(
-                padding: EdgeInsets.fromLTRB(
-                  ResponsiveUtils.getHorizontalPadding(context), 
-                  ResponsiveUtils.getVerticalSpacing(context) * 0.5, 
-                  ResponsiveUtils.getHorizontalPadding(context), 
-                  ResponsiveUtils.getVerticalSpacing(context)
-                ),
-                child: Row(
-                  children: [
-                    // LIVE indicator with neon glow
-                    Container(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: ResponsiveUtils.getHorizontalSpacing(context),
-                        vertical: ResponsiveUtils.getVerticalSpacing(context) * 0.4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFF0B5A), // Neon pink
-                        borderRadius: BorderRadius.circular(ResponsiveUtils.getBorderRadius(context) + 4),
-                        boxShadow: [
-                          BoxShadow(
-                            color: const Color(0xFFFF0B5A).withOpacity(0.5),
-                            blurRadius: 10,
-                            spreadRadius: 2,
-                          ),
-                        ],
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                            width: ResponsiveUtils.getCaptionFontSize(context) * 0.6,
-                            height: ResponsiveUtils.getCaptionFontSize(context) * 0.6,
-                            decoration: const BoxDecoration(
-                              color: Colors.white,
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                          SizedBox(width: ResponsiveUtils.getHorizontalSpacing(context) * 0.4),
-                          Text(
-                            'LIVE',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: ResponsiveUtils.getCaptionFontSize(context),
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    SizedBox(width: ResponsiveUtils.getHorizontalSpacing(context)),
-                    // Fire emoji and Flash Sales text
-                    Text(
-                      '🔥',
-                      style: TextStyle(fontSize: ResponsiveUtils.getBodyFontSize(context) + 2),
-                    ),
-                    SizedBox(width: ResponsiveUtils.getHorizontalSpacing(context) * 0.5),
-                    Text(
-                      'Flash Sales',
-                      style: TextStyle(
-                        fontSize: ResponsiveUtils.getBodyFontSize(context) + 2,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-                    const Spacer(),
-                    // See All button
-                    TextButton(
-                      onPressed: () {
-                        Navigator.pushNamed(context, '/customer-flash-sales');
-                      },
-                      child: Text(
-                        'See All',
-                        style: TextStyle(
-                          color: const Color(0xFF6B73FF), // Neon blue
-                          fontWeight: FontWeight.w600,
-                          fontSize: ResponsiveUtils.getCaptionFontSize(context) + 2,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              
-              // Active Flash Sale Banners
-              SizedBox(
-                height: ResponsiveUtils.getFlashSaleBannerHeight(context),
-                child: PageView.builder(
-                  itemCount: activeFlashSales.length,
-                  itemBuilder: (context, index) {
-                    final flashSale = activeFlashSales[index];
-                    return _buildFlashSaleBanner(context, flashSale);
-                  },
-                ),
-              ),
-            ],
+          return Container(
+            height: 140,
+            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: FlashSaleBannerWidget(flashSale: activeFlashSales.first, isDarkMode: isDarkMode),
           );
         },
       ),
     );
   }
 
-  // New method to build individual flash sale banner
-  Widget _buildFlashSaleBanner(BuildContext context, dynamic flashSale) {
-    return Container(
-      margin: EdgeInsets.symmetric(horizontal: ResponsiveUtils.getHorizontalPadding(context)),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(ResponsiveUtils.getBorderRadius(context) + 4),
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Color(0xFF6B46C1), // Purple
-            Color(0xFF9333EA), // Violet
-            Color(0xFFEC4899), // Pink
-          ],
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFFEC4899).withOpacity(0.3),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
+  Widget _buildFlashSaleBanner(BuildContext context, dynamic flashSale, {bool isDarkMode = true}) {
+    // Debug: print the imageUrl to see what's being stored
+    debugPrint('🔥 Flash Sale imageUrl: "${flashSale.imageUrl}"');
+    
+    return GestureDetector(
+      onTap: () {
+        // Navigate to actionUrl if provided, otherwise go to flash sales page
+        final targetRoute = flashSale.actionUrl ?? '/customer-flash-sales';
+        Navigator.pushNamed(context, targetRoute);
+      },
+      child: TweenAnimationBuilder<double>(
+        tween: Tween(begin: 0.95, end: 1.0),
+        duration: const Duration(milliseconds: 1500),
+        curve: Curves.easeInOut,
+        builder: (context, scale, child) {
+          return Transform.scale(
+            scale: scale,
+            child: child,
+          );
+        },
+        child: Container(
+          height: 140,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.3),
+                blurRadius: 15,
+                offset: const Offset(0, 8),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(ResponsiveUtils.getBorderRadius(context) + 4),
-        child: Stack(
-          children: [
-            // Background pattern/effects
-            Positioned.fill(
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      Colors.white.withOpacity(0.1),
-                      Colors.transparent,
-                      Colors.black.withOpacity(0.1),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            // Background image if available
-            if (flashSale.imageUrl != null && flashSale.imageUrl.isNotEmpty)
-              Positioned.fill(
-                child: Opacity(
-                  opacity: 0.3,
-                  child: Image.network(
-                    flashSale.imageUrl,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) => const SizedBox(),
-                  ),
-                ),
-              ),
-            // Content layout using flexible positioning
-            Row(
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: Stack(
+              fit: StackFit.expand,
               children: [
-                // Left side content - Flexible
-                Expanded(
-                  flex: ResponsiveUtils.isMobile(context) ? 7 : 6,
-                  child: Padding(
-                    padding: EdgeInsets.all(ResponsiveUtils.getVerticalPadding(context)),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [
-                        // Flash sale title
-                        FittedBox(
-                          fit: BoxFit.scaleDown,
-                          child: Text(
-                            flashSale.title ?? 'Flash Sale',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: ResponsiveUtils.getBodyFontSize(context) + 4,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                        // Discount percentage
-                        Container(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: ResponsiveUtils.getHorizontalSpacing(context),
-                            vertical: ResponsiveUtils.getVerticalSpacing(context) * 0.6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFFF0B5A),
-                            borderRadius: BorderRadius.circular(ResponsiveUtils.getBorderRadius(context)),
-                            boxShadow: [
-                              BoxShadow(
-                                color: const Color(0xFFFF0B5A).withOpacity(0.5),
-                                blurRadius: 15,
-                                spreadRadius: 2,
-                              ),
+                // Banner Image (user uploaded design)
+                _buildFlashSaleImage(flashSale.imageUrl),
+                
+                // Shimmer animation overlay
+                _buildShimmerOverlay(),
+                
+                // Timer overlay at bottom
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  child: Consumer<FlashSaleProvider>(
+                    builder: (context, provider, child) {
+                      final timeRemaining = flashSale.timeRemaining;
+                      return Container(
+                        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              Colors.transparent,
+                              Colors.black.withOpacity(0.8),
                             ],
                           ),
-                          child: FittedBox(
-                            fit: BoxFit.scaleDown,
-                            child: Text(
-                              '${flashSale.discountPercentage}% OFF',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: ResponsiveUtils.getTitleFontSize(context) + 4,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 1.2,
-                              ),
-                            ),
-                          ),
                         ),
-                        // Timer text - Dynamic countdown
-                        Consumer<FlashSaleProvider>(
-                          builder: (context, flashProvider, child) {
-                            final timeRemaining = flashSale.timeRemaining;
-                            final formattedTime = _formatDuration(timeRemaining);
-                            return FittedBox(
-                              fit: BoxFit.scaleDown,
-                              child: Text(
-                                'Ends In: $formattedTime',
-                                style: TextStyle(
-                                  color: const Color(0xFF6B73FF),
-                                  fontSize: ResponsiveUtils.getBodyFontSize(context),
-                                  fontWeight: FontWeight.w600,
-                                ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            // LIVE badge
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              margin: const EdgeInsets.only(right: 12),
+                              decoration: BoxDecoration(
+                                color: Colors.red,
+                                borderRadius: BorderRadius.circular(4),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.red.withOpacity(0.5),
+                                    blurRadius: 8,
+                                    spreadRadius: 1,
+                                  ),
+                                ],
                               ),
-                            );
-                          },
+                              child: const Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.flash_on, color: Colors.white, size: 14),
+                                  SizedBox(width: 4),
+                                  Text(
+                                    'LIVE',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            // Timer
+                            const Icon(Icons.timer, color: Colors.white, size: 18),
+                            const SizedBox(width: 8),
+                            _buildFlashSaleTimer(timeRemaining),
+                          ],
                         ),
-                        // Shop Now button
-                        SizedBox(
-                          height: ResponsiveUtils.getProductButtonHeight(context),
-                          child: ElevatedButton(
-                            onPressed: () {
-                              Navigator.pushNamed(context, '/customer-flash-sales');
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF6B73FF),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(ResponsiveUtils.getBorderRadius(context)),
-                              ),
-                              elevation: 8,
-                              shadowColor: const Color(0xFF6B73FF).withOpacity(0.4),
-                            ),
-                            child: FittedBox(
-                              fit: BoxFit.scaleDown,
-                              child: Text(
-                                'Shop Now',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: ResponsiveUtils.getBodyFontSize(context),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                // Right side decorative elements - Flexible
-                Expanded(
-                  flex: ResponsiveUtils.isMobile(context) ? 3 : 4,
-                  child: Padding(
-                    padding: EdgeInsets.all(ResponsiveUtils.getVerticalPadding(context)),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        // Gift box icon
-                        Flexible(
-                          child: Container(
-                            constraints: BoxConstraints(
-                              maxWidth: ResponsiveUtils.getIconSize(context) * 2,
-                              maxHeight: ResponsiveUtils.getIconSize(context) * 2,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(ResponsiveUtils.getBorderRadius(context)),
-                              border: Border.all(
-                                color: Colors.white.withOpacity(0.2),
-                                width: 1,
-                              ),
-                            ),
-                            child: Center(
-                              child: Icon(
-                                Icons.card_giftcard,
-                                color: Colors.white,
-                                size: ResponsiveUtils.getIconSize(context) + 4,
-                              ),
-                            ),
-                          ),
-                        ),
-                        SizedBox(height: ResponsiveUtils.getVerticalSpacing(context)),
-                        // Gift emoji
-                        Flexible(
-                          child: Container(
-                            constraints: BoxConstraints(
-                              maxWidth: ResponsiveUtils.getIconSize(context) * 2.5,
-                              maxHeight: ResponsiveUtils.getIconSize(context) * 1.5,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(ResponsiveUtils.getBorderRadius(context)),
-                            ),
-                            child: Center(
-                              child: Text(
-                                '🎁',
-                                style: TextStyle(fontSize: ResponsiveUtils.getIconSize(context)),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
+                      );
+                    },
                   ),
                 ),
               ],
             ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFlashSaleImage(String imageUrl) {
+    if (imageUrl.isNotEmpty && (imageUrl.startsWith('http://') || imageUrl.startsWith('https://'))) {
+      return Image.network(
+        imageUrl,
+        fit: BoxFit.cover,
+        loadingBuilder: (context, child, loadingProgress) {
+          if (loadingProgress == null) return child;
+          return Container(
+            color: const Color(0xFF1E1E2E),
+            child: const Center(child: CircularProgressIndicator(color: Colors.red)),
+          );
+        },
+        errorBuilder: (context, error, stackTrace) {
+          debugPrint('Flash sale network image error: $error');
+          return _buildPlaceholderBanner();
+        },
+      );
+    } else {
+      return _buildPlaceholderBanner();
+    }
+  }
+
+  Widget _buildPlaceholderBanner() {
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFFE53935),
+            Color(0xFFD32F2F),
+            Color(0xFFC62828),
           ],
+        ),
+      ),
+      child: Stack(
+        children: [
+          // Decorative circles
+          Positioned(
+            top: -20,
+            right: -20,
+            child: Container(
+              width: 100,
+              height: 100,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white.withOpacity(0.1),
+              ),
+            ),
+          ),
+          Positioned(
+            bottom: -30,
+            left: -30,
+            child: Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white.withOpacity(0.1),
+              ),
+            ),
+          ),
+          // Content
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                const Icon(Icons.flash_on, color: Colors.amber, size: 32),
+                const SizedBox(width: 8),
+                Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'FLASH SALE',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1,
+                      ),
+                    ),
+                    Text(
+                      'Limited Time Offer!',
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.9),
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildShimmerOverlay() {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: -1.0, end: 2.0),
+      duration: const Duration(seconds: 3),
+      curve: Curves.linear,
+      builder: (context, value, child) {
+        return ShaderMask(
+          shaderCallback: (bounds) {
+            return LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Colors.transparent,
+                Colors.white.withOpacity(0.15),
+                Colors.transparent,
+              ],
+              stops: [
+                (value - 0.3).clamp(0.0, 1.0),
+                value.clamp(0.0, 1.0),
+                (value + 0.3).clamp(0.0, 1.0),
+              ],
+            ).createShader(bounds);
+          },
+          blendMode: BlendMode.srcATop,
+          // Use a transparent child so the shader does not paint a solid white
+          // rectangle that can obscure the banner image underneath.
+          child: Container(color: Colors.transparent),
+        );
+      },
+      onEnd: () {
+        // The shimmer will restart due to the widget rebuild
+      },
+    );
+  }
+
+  Widget _buildFlashSaleTimer(Duration duration) {
+    final hours = duration.inHours;
+    final minutes = duration.inMinutes.remainder(60);
+    final seconds = duration.inSeconds.remainder(60);
+    
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _buildTimerDigit(hours.toString().padLeft(2, '0'), 'H'),
+        const Text(' : ', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+        _buildTimerDigit(minutes.toString().padLeft(2, '0'), 'M'),
+        const Text(' : ', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+        _buildTimerDigit(seconds.toString().padLeft(2, '0'), 'S'),
+      ],
+    );
+  }
+
+  Widget _buildTimerDigit(String value, String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.2),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: Colors.white.withOpacity(0.3), width: 1),
+      ),
+      child: Text(
+        value,
+        style: const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.bold,
+          fontSize: 16,
         ),
       ),
     );
@@ -695,10 +697,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: const Color(0xFF2A2D3A)),
               ),
-              child: const Center(
+              child: Center(
                 child: Text(
                   'No banners available',
-                  style: TextStyle(color: Colors.white70),
+                  style: TextStyle(color: isDarkMode ? Colors.white70 : Colors.black54),
                 ),
               ),
             );
@@ -769,24 +771,43 @@ class _HomeScreenState extends State<HomeScreen> {
                             child: Stack(
                               children: [
                                 if (banner.imageUrl.isNotEmpty)
-                                  Image.network(
-                                    banner.imageUrl,
-                                    width: double.infinity,
-                                    height: double.infinity,
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (context, error, stackTrace) {
-                                      return Container(
-                                        color: const Color(0xFF1E2139),
-                                        child: const Center(
-                                          child: Icon(
-                                            Icons.image,
-                                            color: Colors.white54,
-                                            size: 50,
-                                          ),
-                                        ),
-                                      );
-                                    },
-                                  ),
+                                  banner.imageUrl.startsWith('file://') 
+                                    ? Image.file(
+                                        File(banner.imageUrl.replaceFirst('file://', '')),
+                                        width: double.infinity,
+                                        height: double.infinity,
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (context, error, stackTrace) {
+                                          return Container(
+                                            color: const Color(0xFF1E2139),
+                                            child: const Center(
+                                              child: Icon(
+                                                Icons.image,
+                                                color: Colors.white54,
+                                                size: 50,
+                                              ),
+                                            ),
+                                          );
+                                        },
+                                      )
+                                    : Image.network(
+                                        banner.imageUrl,
+                                        width: double.infinity,
+                                        height: double.infinity,
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (context, error, stackTrace) {
+                                          return Container(
+                                            color: const Color(0xFF1E2139),
+                                            child: const Center(
+                                              child: Icon(
+                                                Icons.image,
+                                                color: Colors.white54,
+                                                size: 50,
+                                              ),
+                                            ),
+                                          );
+                                        },
+                                      ),
                                 Container(
                                   decoration: BoxDecoration(
                                     gradient: LinearGradient(
@@ -871,6 +892,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // Add placeholder methods to prevent compilation errors
   Widget _buildAppBar(BuildContext context, bool isDarkMode) {
+    final iconColor = isDarkMode ? const Color(0xFF7C3AED) : Colors.blue;
+    final titleColor = isDarkMode ? Colors.white : Colors.black87;
+    final subtitleColor = isDarkMode ? Colors.white70 : Colors.black54;
+    
     return SliverToBoxAdapter(
       child: Container(
         padding: const EdgeInsets.fromLTRB(16, 18, 16, 8),
@@ -882,7 +907,7 @@ class _HomeScreenState extends State<HomeScreen> {
               height: 40,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: const Color(0xFF7C3AED)),
+                border: Border.all(color: iconColor),
               ),
               child: IconButton(
                 onPressed: () {
@@ -891,32 +916,32 @@ class _HomeScreenState extends State<HomeScreen> {
                     MaterialPageRoute(builder: (context) => const ProfileScreen()),
                   );
                 },
-                icon: const Icon(
+                icon: Icon(
                   Icons.person,
-                  color: Color(0xFF7C3AED),
+                  color: iconColor,
                   size: 22,
                 ),
               ),
             ),
             const SizedBox(width: 12),
             // App title
-            const Expanded(
+            Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'KarmaShop',
+                    'KarmaGully',
                     style: TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                      color: titleColor,
                     ),
                   ),
                   Text(
                     'Shop with good karma',
                     style: TextStyle(
                       fontSize: 12,
-                      color: Colors.white70,
+                      color: subtitleColor,
                     ),
                   ),
                 ],
@@ -928,15 +953,15 @@ class _HomeScreenState extends State<HomeScreen> {
               height: 40,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: const Color(0xFF7C3AED)),
+                border: Border.all(color: iconColor),
               ),
               child: IconButton(
                 onPressed: () {
                   Navigator.pushNamed(context, '/notifications');
                 },
-                icon: const Icon(
+                icon: Icon(
                   Icons.notifications_outlined,
-                  color: Color(0xFF7C3AED),
+                  color: iconColor,
                   size: 22,
                 ),
               ),
@@ -1017,7 +1042,7 @@ class _HomeScreenState extends State<HomeScreen> {
               style: TextStyle(
                 fontSize: ResponsiveUtils.getTitleFontSize(context),
                 fontWeight: FontWeight.bold,
-                color: Colors.white,
+                color: isDarkMode ? Colors.white : Colors.black87,
               ),
             ),
           ),
@@ -1031,12 +1056,12 @@ class _HomeScreenState extends State<HomeScreen> {
               }
 
               if (categoryProvider.categories.isEmpty) {
-                return const SizedBox(
+                return SizedBox(
                   height: 110,
                   child: Center(
                     child: Text(
                       'No categories available',
-                      style: TextStyle(color: Colors.white70),
+                      style: TextStyle(color: isDarkMode ? Colors.white70 : Colors.black54),
                     ),
                   ),
                 );
@@ -1127,9 +1152,9 @@ class _HomeScreenState extends State<HomeScreen> {
                             Flexible(
                               child: Text(
                                 category.name,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 12,
-                                  color: Colors.white,
+                                  color: isDarkMode ? Colors.white : Colors.black87,
                                   fontWeight: FontWeight.w500,
                                 ),
                                 textAlign: TextAlign.center,
@@ -1211,7 +1236,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         ),
                         const SizedBox(width: 12),
-                        const Column(
+                        Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
@@ -1219,14 +1244,14 @@ class _HomeScreenState extends State<HomeScreen> {
                               style: TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
-                                color: Colors.white,
+                                color: isDarkMode ? Colors.white : Colors.black87,
                               ),
                             ),
                             Text(
                               'See what our community is sharing',
                               style: TextStyle(
                                 fontSize: 12,
-                                color: Colors.white70,
+                                color: isDarkMode ? Colors.white70 : Colors.black54,
                               ),
                             ),
                           ],
@@ -1335,54 +1360,61 @@ class _HomeScreenState extends State<HomeScreen> {
                                       ),
                                       child: ClipRRect(
                                         borderRadius: BorderRadius.circular(16),
-                                        child: post.userAvatar.startsWith('http') || post.userAvatar.contains('/')
-                                            ? Builder(builder: (context) {
-                                                try {
-                                                  if (post.userAvatar.startsWith('http')) {
-                                                    return Image.network(
-                                                      post.userAvatar,
-                                                      width: 32,
-                                                      height: 32,
-                                                      fit: BoxFit.cover,
-                                                      errorBuilder: (context, error, stack) {
-                                                        return Center(
-                                                          child: Text(
-                                                            post.userAvatar,
-                                                            style: const TextStyle(fontSize: 16),
-                                                          ),
+                                        child: post.userAvatar.startsWith('assets/')
+                                            ? Image.asset(
+                                                post.userAvatar,
+                                                width: 32,
+                                                height: 32,
+                                                fit: BoxFit.cover,
+                                              )
+                                            : post.userAvatar.startsWith('http') || post.userAvatar.contains('/')
+                                                ? Builder(builder: (context) {
+                                                    try {
+                                                      if (post.userAvatar.startsWith('http')) {
+                                                        return Image.network(
+                                                          post.userAvatar,
+                                                          width: 32,
+                                                          height: 32,
+                                                          fit: BoxFit.cover,
+                                                          errorBuilder: (context, error, stack) {
+                                                            return Center(
+                                                              child: Text(
+                                                                post.userAvatar,
+                                                                style: const TextStyle(fontSize: 16),
+                                                              ),
+                                                            );
+                                                          },
                                                         );
-                                                      },
-                                                    );
-                                                  }
-                                                  return Image.file(
-                                                    File(post.userAvatar),
-                                                    width: 32,
-                                                    height: 32,
-                                                    fit: BoxFit.cover,
-                                                    errorBuilder: (context, error, stack) {
+                                                      }
+                                                      return Image.file(
+                                                        File(post.userAvatar),
+                                                        width: 32,
+                                                        height: 32,
+                                                        fit: BoxFit.cover,
+                                                        errorBuilder: (context, error, stack) {
+                                                          return Center(
+                                                            child: Text(
+                                                              post.userAvatar,
+                                                              style: const TextStyle(fontSize: 16),
+                                                            ),
+                                                          );
+                                                        },
+                                                      );
+                                                    } catch (e) {
                                                       return Center(
                                                         child: Text(
                                                           post.userAvatar,
                                                           style: const TextStyle(fontSize: 16),
                                                         ),
                                                       );
-                                                    },
-                                                  );
-                                                } catch (e) {
-                                                  return Center(
+                                                    }
+                                                  })
+                                                : Center(
                                                     child: Text(
                                                       post.userAvatar,
                                                       style: const TextStyle(fontSize: 16),
                                                     ),
-                                                  );
-                                                }
-                                              })
-                                            : Center(
-                                                child: Text(
-                                                  post.userAvatar,
-                                                  style: const TextStyle(fontSize: 16),
-                                                ),
-                                              ),
+                                                  ),
                                       ),
                                     ),
                                   ),
@@ -1396,10 +1428,10 @@ class _HomeScreenState extends State<HomeScreen> {
                                             Flexible(
                                               child: Text(
                                                 post.userDisplayName ?? post.username,
-                                                style: const TextStyle(
+                                                style: TextStyle(
                                                   fontWeight: FontWeight.bold,
                                                   fontSize: 14,
-                                                  color: Colors.white,
+                                                  color: isDarkMode ? Colors.white : Colors.black87,
                                                 ),
                                                 overflow: TextOverflow.ellipsis,
                                               ),
@@ -1416,8 +1448,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                         ),
                                         Text(
                                           post.formattedDate,
-                                          style: const TextStyle(
-                                            color: Colors.white70,
+                                          style: TextStyle(
+                                            color: isDarkMode ? Colors.white70 : Colors.black54,
                                             fontSize: 12,
                                           ),
                                         ),
@@ -1433,9 +1465,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                 padding: const EdgeInsets.symmetric(horizontal: 12),
                                 child: Text(
                                   post.content,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 13,
-                                    color: Colors.white,
+                                    color: isDarkMode ? Colors.white : Colors.black87,
                                   ),
                                   maxLines: 2,
                                   overflow: TextOverflow.ellipsis,
@@ -1454,25 +1486,25 @@ class _HomeScreenState extends State<HomeScreen> {
                                     color: Colors.red[400],
                                   ),
                                   const SizedBox(width: 4),
-                                  const Text(
+                                  Text(
                                     '24',
                                     style: TextStyle(
                                       fontSize: 12,
-                                      color: Colors.white70,
+                                      color: isDarkMode ? Colors.white70 : Colors.black54,
                                     ),
                                   ),
                                   const SizedBox(width: 16),
-                                  const Icon(
+                                  Icon(
                                     Icons.comment,
                                     size: 16,
-                                    color: Colors.white70,
+                                    color: isDarkMode ? Colors.white70 : Colors.black54,
                                   ),
                                   const SizedBox(width: 4),
-                                  const Text(
+                                  Text(
                                     '5',
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontSize: 12,
-                                      color: Colors.white70,
+                                      color: isDarkMode ? Colors.white70 : Colors.black54,
                                     ),
                                   ),
                                 ],
@@ -1500,12 +1532,12 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'Featured Products',
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
-                color: Colors.white,
+                color: isDarkMode ? Colors.white : Colors.black87,
               ),
             ),
             const SizedBox(height: 16),
@@ -1514,10 +1546,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 final featuredProducts = productProvider.featuredProducts;
                 
                 if (featuredProducts.isEmpty) {
-                  return const Center(
+                  return Center(
                     child: Text(
                       'No featured products available',
-                      style: TextStyle(color: Colors.white70),
+                      style: TextStyle(color: isDarkMode ? Colors.white70 : Colors.black54),
                     ),
                   );
                 }
@@ -1529,79 +1561,84 @@ class _HomeScreenState extends State<HomeScreen> {
                     itemCount: featuredProducts.length,
                     itemBuilder: (context, index) {
                       final product = featuredProducts[index];
-                      return Container(
-                        width: 200,
-                        margin: const EdgeInsets.only(right: 16),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF1E2139),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: const Color(0xFF2A2D3A)),
-                        ),
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 80,
-                              height: 80,
-                              margin: const EdgeInsets.all(16),
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(8),
-                                gradient: LinearGradient(
-                                  colors: [
-                                    const Color(0xFF6B73FF).withOpacity(0.3),
-                                    const Color(0xFFEC4899).withOpacity(0.3),
-                                  ],
+                      return GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => ProductDetailScreen(productId: product.id),
+                            ),
+                          );
+                        },
+                        child: Container(
+                          width: 200,
+                          margin: const EdgeInsets.only(right: 16),
+                          decoration: BoxDecoration(
+                            color: isDarkMode ? const Color(0xFF1E2139) : Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: isDarkMode ? const Color(0xFF2A2D3A) : Colors.grey.shade300),
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 80,
+                                height: 80,
+                                margin: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(8),
+                                  gradient: LinearGradient(
+                                    colors: [
+                                      const Color(0xFF6B73FF).withOpacity(0.3),
+                                      const Color(0xFFEC4899).withOpacity(0.3),
+                                    ],
+                                  ),
+                                ),
+                                child: (product.imageUrl.isNotEmpty || product.imageUrls.isNotEmpty)
+                                    ? ClipRRect(
+                                        borderRadius: BorderRadius.circular(8),
+                                        child: _buildProductImage(
+                                          product.imageUrl.isNotEmpty ? product.imageUrl : product.imageUrls.first,
+                                          isDarkMode,
+                                          context,
+                                        ),
+                                      )
+                                    : Icon(
+                                        Icons.image,
+                                        color: isDarkMode ? Colors.white54 : Colors.grey,
+                                      ),
+                              ),
+                              Expanded(
+                                child: Padding(
+                                  padding: const EdgeInsets.only(right: 16, top: 16, bottom: 16),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Text(
+                                        product.name,
+                                        style: TextStyle(
+                                          color: isDarkMode ? Colors.white : Colors.black87,
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        '\$${product.price.toStringAsFixed(2)}',
+                                        style: TextStyle(
+                                          color: isDarkMode ? const Color(0xFF6B73FF) : Colors.blue,
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
-                              child: product.imageUrl.isNotEmpty
-                                  ? ClipRRect(
-                                      borderRadius: BorderRadius.circular(8),
-                                      child: Image.network(
-                                        product.imageUrl,
-                                        fit: BoxFit.cover,
-                                        errorBuilder: (context, error, stackTrace) {
-                                          return const Icon(
-                                            Icons.image,
-                                            color: Colors.white54,
-                                          );
-                                        },
-                                      ),
-                                    )
-                                  : const Icon(
-                                      Icons.image,
-                                      color: Colors.white54,
-                                    ),
-                            ),
-                            Expanded(
-                              child: Padding(
-                                padding: const EdgeInsets.only(right: 16, top: 16, bottom: 16),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Text(
-                                      product.name,
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      '\$${product.price.toStringAsFixed(2)}',
-                                      style: const TextStyle(
-                                        color: Color(0xFF6B73FF),
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       );
                     },
@@ -1615,7 +1652,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildProductSections(BuildContext context) {
+  Widget _buildProductSections(BuildContext context, bool isDarkMode) {
     return Consumer2<ProductSectionProvider, ProductProvider>(
       builder: (context, sectionProvider, productProvider, child) {
         final activeSections = sectionProvider.activeSections;
@@ -1647,18 +1684,18 @@ class _HomeScreenState extends State<HomeScreen> {
                           children: [
                             Text(
                               section.name,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 20,
                                 fontWeight: FontWeight.bold,
-                                color: Colors.white,
+                                color: isDarkMode ? Colors.white : Colors.black87,
                               ),
                             ),
                             if (section.description.isNotEmpty)
                               Text(
                                 section.description,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 12,
-                                  color: Colors.white70,
+                                  color: isDarkMode ? Colors.white70 : Colors.black54,
                                 ),
                               ),
                           ],
@@ -1667,9 +1704,9 @@ class _HomeScreenState extends State<HomeScreen> {
                           onPressed: () {
                             // Navigate to section products view
                           },
-                          child: const Text(
+                          child: Text(
                             'See All',
-                            style: TextStyle(color: Color(0xFF6B73FF)),
+                            style: TextStyle(color: isDarkMode ? const Color(0xFF6B73FF) : Colors.blue),
                           ),
                         ),
                       ],
@@ -1697,10 +1734,10 @@ class _HomeScreenState extends State<HomeScreen> {
                             width: 180,
                             margin: const EdgeInsets.only(right: 12),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF1C1F26),
+                              color: isDarkMode ? const Color(0xFF1C1F26) : Colors.white,
                               borderRadius: BorderRadius.circular(16),
                               border: Border.all(
-                                color: const Color(0xFF6B73FF).withOpacity(0.2),
+                                color: isDarkMode ? const Color(0xFF6B73FF).withOpacity(0.2) : Colors.grey.shade300,
                               ),
                             ),
                             child: Column(
@@ -1714,21 +1751,16 @@ class _HomeScreenState extends State<HomeScreen> {
                                   child: Container(
                                     height: 180,
                                     width: double.infinity,
-                                    color: const Color(0xFF2A2D3A),
-                                    child: product.imageUrl.isNotEmpty
-                                        ? Image.network(
-                                            product.imageUrl,
-                                            fit: BoxFit.cover,
-                                            errorBuilder: (context, error, stackTrace) =>
-                                                const Icon(
-                                              Icons.image,
-                                              color: Colors.white54,
-                                              size: 48,
-                                            ),
+                                    color: isDarkMode ? const Color(0xFF2A2D3A) : Colors.grey.shade100,
+                                    child: (product.imageUrl.isNotEmpty || product.imageUrls.isNotEmpty)
+                                        ? _buildProductImage(
+                                            product.imageUrl.isNotEmpty ? product.imageUrl : product.imageUrls.first,
+                                            isDarkMode,
+                                            context,
                                           )
-                                        : const Icon(
+                                        : Icon(
                                             Icons.image,
-                                            color: Colors.white54,
+                                            color: isDarkMode ? Colors.white54 : Colors.grey,
                                             size: 48,
                                           ),
                                   ),
@@ -1743,8 +1775,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                       children: [
                                         Text(
                                           product.name,
-                                          style: const TextStyle(
-                                            color: Colors.white,
+                                          style: TextStyle(
+                                            color: isDarkMode ? Colors.white : Colors.black87,
                                             fontSize: 14,
                                             fontWeight: FontWeight.w600,
                                           ),
@@ -1756,8 +1788,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                           children: [
                                             Text(
                                               '\$${product.price.toStringAsFixed(2)}',
-                                              style: const TextStyle(
-                                                color: Color(0xFF6B73FF),
+                                              style: TextStyle(
+                                                color: isDarkMode ? const Color(0xFF6B73FF) : Colors.blue,
                                                 fontSize: 16,
                                                 fontWeight: FontWeight.bold,
                                               ),
@@ -1765,12 +1797,12 @@ class _HomeScreenState extends State<HomeScreen> {
                                             Container(
                                               padding: const EdgeInsets.all(4),
                                               decoration: BoxDecoration(
-                                                color: const Color(0xFF6B73FF).withOpacity(0.2),
+                                                color: (isDarkMode ? const Color(0xFF6B73FF) : Colors.blue).withOpacity(0.2),
                                                 borderRadius: BorderRadius.circular(4),
                                               ),
-                                              child: const Icon(
+                                              child: Icon(
                                                 Icons.add_shopping_cart,
-                                                color: Color(0xFF6B73FF),
+                                                color: isDarkMode ? const Color(0xFF6B73FF) : Colors.blue,
                                                 size: 16,
                                               ),
                                             ),
@@ -1797,27 +1829,30 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildProductGrid(BuildContext context, bool isDarkMode) {
+    final progressColor = isDarkMode ? const Color(0xFF6B73FF) : Colors.blue;
+    final textColor = isDarkMode ? Colors.white70 : Colors.black54;
+    
     return Consumer<ProductProvider>(
       builder: (context, productProvider, child) {
         if (productProvider.isLoading) {
-          return const SliverToBoxAdapter(
+          return SliverToBoxAdapter(
             child: Center(
               child: Padding(
                 padding: EdgeInsets.all(40),
-                child: CircularProgressIndicator(color: Color(0xFF6B73FF)),
+                child: CircularProgressIndicator(color: progressColor),
               ),
             ),
           );
         }
 
         if (productProvider.products.isEmpty) {
-          return const SliverToBoxAdapter(
+          return SliverToBoxAdapter(
             child: Center(
               child: Padding(
                 padding: EdgeInsets.all(40),
                 child: Text(
                   'No products available',
-                  style: TextStyle(color: Colors.white70),
+                  style: TextStyle(color: textColor),
                 ),
               ),
             ),
@@ -1845,11 +1880,11 @@ class _HomeScreenState extends State<HomeScreen> {
                 padding: const EdgeInsets.all(40),
                 child: Column(
                   children: [
-                    Icon(Icons.search_off, size: 64, color: Colors.white.withOpacity(0.3)),
+                    Icon(Icons.search_off, size: 64, color: (isDarkMode ? Colors.white : Colors.black).withOpacity(0.3)),
                     const SizedBox(height: 16),
                     Text(
                       'No products found for "$_searchQuery"',
-                      style: const TextStyle(color: Colors.white70, fontSize: 16),
+                      style: TextStyle(color: textColor, fontSize: 16),
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 8),
@@ -1884,7 +1919,7 @@ class _HomeScreenState extends State<HomeScreen> {
               itemCount: priceFilteredProducts.length,
               itemBuilder: (context, index) {
                 final product = priceFilteredProducts[index];
-                return _buildProductCard(context, product);
+                return _buildProductCard(context, product, isDarkMode);
               },
             ),
           ),
@@ -1893,7 +1928,11 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildProductCard(BuildContext context, dynamic product) {
+  Widget _buildProductCard(BuildContext context, dynamic product, bool isDarkMode) {
+    final cardBg = isDarkMode ? const Color(0xFF1E2139) : Colors.white;
+    final borderColor = isDarkMode ? const Color(0xFF2A2D3A) : Colors.grey.shade300;
+    final shadowColor = isDarkMode ? Colors.black.withOpacity(0.3) : Colors.grey.withOpacity(0.2);
+    
     return GestureDetector(
       onTap: () {
         Navigator.push(
@@ -1905,15 +1944,15 @@ class _HomeScreenState extends State<HomeScreen> {
       },
       child: Container(
         decoration: BoxDecoration(
-          color: const Color(0xFF1E2139),
+          color: cardBg,
           borderRadius: BorderRadius.circular(ResponsiveUtils.getBorderRadius(context)),
           border: Border.all(
-            color: const Color(0xFF2A2D3A),
+            color: borderColor,
             width: 1,
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.3),
+              color: shadowColor,
               blurRadius: 10,
               offset: const Offset(0, 5),
             ),
@@ -1946,32 +1985,23 @@ class _HomeScreenState extends State<HomeScreen> {
                     Container(
                       width: double.infinity,
                       height: double.infinity,
-                      child: product.imageUrl.isNotEmpty
+                      child: (product.imageUrl.isNotEmpty || product.imageUrls.isNotEmpty)
                           ? ClipRRect(
                               borderRadius: BorderRadius.only(
                                 topLeft: Radius.circular(ResponsiveUtils.getBorderRadius(context)),
                                 topRight: Radius.circular(ResponsiveUtils.getBorderRadius(context)),
                               ),
-                              child: Image.network(
-                                product.imageUrl,
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) {
-                                  return Container(
-                                    color: const Color(0xFF2A2D3A),
-                                    child: Icon(
-                                      Icons.image,
-                                      color: Colors.white54,
-                                      size: ResponsiveUtils.getIconSize(context),
-                                    ),
-                                  );
-                                },
+                              child: _buildProductImage(
+                                product.imageUrl.isNotEmpty ? product.imageUrl : product.imageUrls.first,
+                                isDarkMode,
+                                context,
                               ),
                             )
                           : Container(
-                              color: const Color(0xFF2A2D3A),
+                              color: isDarkMode ? const Color(0xFF2A2D3A) : Colors.grey.shade200,
                               child: Icon(
                                 Icons.image,
-                                color: Colors.white54,
+                                color: isDarkMode ? Colors.white54 : Colors.grey,
                                 size: ResponsiveUtils.getIconSize(context),
                               ),
                             ),
@@ -1999,7 +2029,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               },
                               child: Icon(
                                 isInWishlist ? Icons.favorite : Icons.favorite_border,
-                                color: isInWishlist ? const Color(0xFFFF0B5A) : Colors.white,
+                                color: isInWishlist ? const Color(0xFFFF0B5A) : (isDarkMode ? Colors.white : Colors.black54),
                                 size: ResponsiveUtils.getCaptionFontSize(context) + 6,
                               ),
                             ),
@@ -2025,7 +2055,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       child: Text(
                         product.name,
                         style: TextStyle(
-                          color: Colors.white,
+                          color: isDarkMode ? Colors.white : Colors.black87,
                           fontSize: ResponsiveUtils.getCaptionFontSize(context) + 2,
                           fontWeight: FontWeight.w600,
                         ),
@@ -2039,7 +2069,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     Text(
                       '\$${product.price.toStringAsFixed(2)}',
                       style: TextStyle(
-                        color: const Color(0xFF6B73FF),
+                        color: isDarkMode ? const Color(0xFF6B73FF) : Colors.blue,
                         fontSize: ResponsiveUtils.getCaptionFontSize(context) + 3,
                         fontWeight: FontWeight.bold,
                       ),
@@ -2057,12 +2087,12 @@ class _HomeScreenState extends State<HomeScreen> {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: Text('${product.name} added to cart'),
-                              backgroundColor: const Color(0xFF6B73FF),
+                              backgroundColor: isDarkMode ? const Color(0xFF6B73FF) : Colors.blue,
                             ),
                           );
                         },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF6B73FF),
+                          backgroundColor: isDarkMode ? const Color(0xFF6B73FF) : Colors.blue,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(ResponsiveUtils.getBorderRadius(context) * 0.5),
                           ),
@@ -2091,20 +2121,66 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  Widget _buildProductImage(String imagePath, bool isDarkMode, BuildContext context) {
+    // Check if it's a local file path
+    if (imagePath.startsWith('/') || imagePath.contains('\\') || imagePath.startsWith('file://')) {
+      final file = File(imagePath.replaceFirst('file://', ''));
+      if (file.existsSync()) {
+        return Image.file(
+          file,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) {
+            return Container(
+              color: isDarkMode ? const Color(0xFF2A2D3A) : Colors.grey.shade200,
+              child: Icon(
+                Icons.image,
+                color: isDarkMode ? Colors.white54 : Colors.grey,
+                size: ResponsiveUtils.getIconSize(context),
+              ),
+            );
+          },
+        );
+      }
+    }
+    
+    // It's a network URL
+    return Image.network(
+      imagePath,
+      fit: BoxFit.cover,
+      errorBuilder: (context, error, stackTrace) {
+        return Container(
+          color: isDarkMode ? const Color(0xFF2A2D3A) : Colors.grey.shade200,
+          child: Icon(
+            Icons.image,
+            color: isDarkMode ? Colors.white54 : Colors.grey,
+            size: ResponsiveUtils.getIconSize(context),
+          ),
+        );
+      },
+    );
+  }
+
   Widget _buildNewBottomNavigationBar(BuildContext context) {
-    return Container(
+    return Consumer<ThemeProvider>(
+      builder: (context, themeProvider, child) {
+        final isDarkMode = themeProvider.isDarkMode;
+        final bgColor = isDarkMode ? const Color(0xFF020617) : Colors.white;
+        final selectedColor = isDarkMode ? const Color(0xFF8B5CF6) : Colors.blue;
+        final unselectedColor = isDarkMode ? Colors.white60 : Colors.grey;
+        
+        return Container(
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
+        gradient: isDarkMode ? const LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: [
             Color(0x00111827),
             Color(0xFF020617),
           ],
-        ),
+        ) : null,
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF7C3AED).withOpacity(0.45),
+            color: (isDarkMode ? const Color(0xFF7C3AED) : Colors.blue).withOpacity(0.45),
             blurRadius: 26,
             offset: const Offset(0, -8),
           ),
@@ -2112,23 +2188,23 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       child: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
-        backgroundColor: const Color(0xFF020617),
-        selectedItemColor: const Color(0xFF8B5CF6),
-        unselectedItemColor: Colors.white60,
+        backgroundColor: bgColor,
+        selectedItemColor: selectedColor,
+        unselectedItemColor: unselectedColor,
         selectedFontSize: 12,
         unselectedFontSize: 10,
         selectedIconTheme: IconThemeData(
-          color: const Color(0xFF8B5CF6),
+          color: selectedColor,
           size: 26,
           shadows: [
             BoxShadow(
-              color: const Color(0xFF8B5CF6).withOpacity(0.85),
+              color: selectedColor.withOpacity(0.85),
               blurRadius: 18,
             ),
           ],
         ),
-        unselectedIconTheme: const IconThemeData(
-          color: Colors.white60,
+        unselectedIconTheme: IconThemeData(
+          color: unselectedColor,
           size: 24,
         ),
         currentIndex: _currentPageIndex,
@@ -2140,6 +2216,8 @@ class _HomeScreenState extends State<HomeScreen> {
         },
         items: _buildBottomNavItems(context),
       ),
+    );
+      },
     );
   }
 
@@ -2202,10 +2280,13 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _showFilterBottomSheet(BuildContext context) {
     RangeValues tempPriceRange = _priceRange;
+    final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
+    final isDarkMode = themeProvider.isDarkMode;
+    final bgColor = isDarkMode ? const Color(0xFF1E2139) : Colors.white;
     
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFF1E2139),
+      backgroundColor: bgColor,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -2468,7 +2549,7 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
           _buildCarouselSection(context, true),
           _buildFlashSalesSection(context, true),
           _buildCategoriesSection(context, true),
-          _buildSocialFeedPreviewSection(context, true),
+          // Community Feed section removed
           _buildAIRecommendationSection(context, true),
           _buildFeaturedSection(context, true),
           _buildProductGrid(context, true),
@@ -2515,7 +2596,7 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'KarmaShop',
+                    'KarmaGully',
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,

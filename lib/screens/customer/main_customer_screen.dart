@@ -6,6 +6,7 @@ import 'home_screen.dart';
 import 'wishlist_screen.dart';
 import 'profile_screen.dart';
 import '../../widgets/chatbot_widget.dart';
+import '../../widgets/promotional_banner_widget.dart';
 
 class MainCustomerScreen extends StatefulWidget {
   final int initialIndex;
@@ -334,11 +335,19 @@ class _SearchScreen extends StatelessWidget {
             snap: true,
           ),
           SliverToBoxAdapter(
-            child: Container(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                children: [
-                  Container(
+            child: Column(
+              children: [
+                // Promotional Banner
+                PromotionalBannerWidget(
+                  page: 'search',
+                ),
+                
+                // Search Content
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    children: [
+                      Container(
                     margin: EdgeInsets.symmetric(horizontal: ResponsiveUtils.getHorizontalPadding(context)),
                     child: Container(
                       decoration: BoxDecoration(
@@ -397,15 +406,17 @@ class _SearchScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  const Text(
-                    'Find what you\'re looking for...',
-                    style: TextStyle(
-                      color: Colors.white54,
-                      fontSize: 16,
-                    ),
+                      const Text(
+                        'Find what you\'re looking for...',
+                        style: TextStyle(
+                          color: Colors.white54,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ],

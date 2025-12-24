@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../l10n/app_localizations.dart';
 import '../../constants/app_colors.dart';
 import '../../providers/auth_provider.dart';
@@ -9,6 +11,7 @@ import '../../providers/order_provider.dart';
 import '../../providers/wishlist_provider.dart';
 import '../../providers/language_provider.dart';
 import '../../providers/review_provider.dart';
+import '../../providers/social_media_provider.dart';
 import '../../utils/navigation_helper.dart';
 import '../customer/language_selection_screen.dart';
 import '../customer/customer_support_screen.dart';
@@ -29,6 +32,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     // Load user orders when screen initializes
     WidgetsBinding.instance.addPostFrameCallback((_) {
       // Demo orders are created via addOrder method instead
+      // Load social media links
+      Provider.of<SocialMediaProvider>(context, listen: false).loadSocialMediaLinks();
     });
   }
 
@@ -61,6 +66,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 _buildProfileStats(themeProvider.isDarkMode),
                 const SizedBox(height: 24),
                 _buildProfileActions(themeProvider.isDarkMode),
+                const SizedBox(height: 24),
+                _buildSocialMediaSection(themeProvider.isDarkMode),
                 const SizedBox(height: 24),
                 _buildSettingsSection(themeProvider.isDarkMode),
               ],
@@ -459,6 +466,183 @@ class _ProfileScreenState extends State<ProfileScreen> {
         onTap: onTap,
       ),
     );
+  }
+
+  Widget _buildSocialMediaSection(bool isDarkMode) {
+    return Consumer<SocialMediaProvider>(
+      builder: (context, socialProvider, child) {
+        final links = socialProvider.socialMediaLinks;
+
+        if (links.isEmpty) {
+          return const SizedBox.shrink();
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(left: 4, bottom: 12),
+              child: Text(
+                'Follow Us',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.getTextColor(isDarkMode),
+                ),
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: AppColors.getCardBackgroundColor(isDarkMode),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.getBorderColor(isDarkMode)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Connect with us on social media',
+                    style: TextStyle(
+                      color: AppColors.getTextSecondaryColor(isDarkMode),
+                      fontSize: 14,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Wrap(
+                    spacing: 12,
+                    runSpacing: 12,
+                    children: links.map((link) {
+                      return GestureDetector(
+                        onTap: () => _launchSocialURL(link.url, link.name),
+                        child: Container(
+                          width: 56,
+                          height: 56,
+                          decoration: BoxDecoration(
+                            color: _getSocialIconColor(link.iconName).withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: _getSocialIconColor(link.iconName).withOpacity(0.3),
+                              width: 1.5,
+                            ),
+                          ),
+                          child: Center(
+                            child: FaIcon(
+                              _getSocialIconData(link.iconName),
+                              color: _getSocialIconColor(link.iconName),
+                              size: 26,
+                            ),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  IconData _getSocialIconData(String iconName) {
+    switch (iconName.toLowerCase()) {
+      case 'facebook':
+        return FontAwesomeIcons.facebookF;
+      case 'instagram':
+        return FontAwesomeIcons.instagram;
+      case 'twitter':
+        return FontAwesomeIcons.xTwitter;
+      case 'youtube':
+        return FontAwesomeIcons.youtube;
+      case 'linkedin':
+        return FontAwesomeIcons.linkedinIn;
+      case 'whatsapp':
+        return FontAwesomeIcons.whatsapp;
+      case 'telegram':
+        return FontAwesomeIcons.telegram;
+      case 'tiktok':
+        return FontAwesomeIcons.tiktok;
+      case 'pinterest':
+        return FontAwesomeIcons.pinterestP;
+      case 'snapchat':
+        return FontAwesomeIcons.snapchat;
+      default:
+        return FontAwesomeIcons.share;
+    }
+  }
+
+  Color _getSocialIconColor(String iconName) {
+    switch (iconName.toLowerCase()) {
+      case 'facebook':
+        return const Color(0xFF1877F2);
+      case 'instagram':
+        return const Color(0xFFE4405F);
+      case 'twitter':
+        return const Color(0xFF000000);
+      case 'youtube':
+        return const Color(0xFFFF0000);
+      case 'linkedin':
+        return const Color(0xFF0A66C2);
+      case 'whatsapp':
+        return const Color(0xFF25D366);
+      case 'telegram':
+        return const Color(0xFF0088CC);
+      case 'tiktok':
+        return const Color(0xFF010101);
+      case 'pinterest':
+        return const Color(0xFFBD081C);
+      case 'snapchat':
+        return const Color(0xFFFFFC00);
+      default:
+        return Colors.grey;
+    }
+  }
+
+  Future<void> _launchSocialURL(String url, String platformName) async {
+    try {
+      final uri = Uri.parse(url);
+      
+      // Try to launch the URL
+      bool launched = false;
+      
+      // First, try launching with external application mode (opens in app if installed)
+      try {
+        launched = await launchUrl(
+          uri,
+          mode: LaunchMode.externalApplication,
+        );
+      } catch (e) {
+        // If external app fails, try platform default
+        launched = await launchUrl(
+          uri,
+          mode: LaunchMode.platformDefault,
+        );
+      }
+      
+      if (!launched) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Could not open $platformName'),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error opening $platformName'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    }
   }
 
   Widget _buildSettingsSection(bool isDarkMode) {

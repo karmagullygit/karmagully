@@ -49,151 +49,152 @@ class _LanguageSelectionScreenState extends State<LanguageSelectionScreen> {
               color: AppColors.getTextColor(themeProvider.isDarkMode),
             ),
           ),
-          body: Column(
-            children: [
-              // Search Bar
-              Container(
-                margin: const EdgeInsets.all(16),
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                decoration: BoxDecoration(
-                  color: AppColors.getCardBackgroundColor(themeProvider.isDarkMode),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.getBorderColor(themeProvider.isDarkMode)),
-                ),
-                child: TextField(
-                  controller: _searchController,
-                  onChanged: _filterLanguages,
-                  style: TextStyle(
-                    color: AppColors.getTextColor(themeProvider.isDarkMode),
+          body: SafeArea(
+            child: Column(
+              children: [
+                // Search Bar
+                Container(
+                  margin: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  decoration: BoxDecoration(
+                    color: AppColors.getCardBackgroundColor(themeProvider.isDarkMode),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.getBorderColor(themeProvider.isDarkMode)),
                   ),
-                  decoration: InputDecoration(
-                    hintText: AppLocalizations.of(context)!.searchLanguages,
-                    hintStyle: TextStyle(
-                      color: AppColors.getTextSecondaryColor(themeProvider.isDarkMode),
+                  child: TextField(
+                    controller: _searchController,
+                    onChanged: _filterLanguages,
+                    style: TextStyle(
+                      color: AppColors.getTextColor(themeProvider.isDarkMode),
                     ),
-                    border: InputBorder.none,
-                    prefixIcon: Icon(
-                      Icons.search,
-                      color: AppColors.getTextSecondaryColor(themeProvider.isDarkMode),
-                    ),
-                    suffixIcon: _searchController.text.isNotEmpty
-                        ? IconButton(
-                            onPressed: () {
-                              _searchController.clear();
-                              _filterLanguages('');
-                            },
-                            icon: Icon(
-                              Icons.clear,
-                              color: AppColors.getTextSecondaryColor(themeProvider.isDarkMode),
-                            ),
-                          )
-                        : null,
-                  ),
-                ),
-              ),
-              
-              // Current Language Section
-              Container(
-                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.primary),
-                ),
-                child: Row(
-                  children: [
-                    Text(
-                      languageProvider.getCurrentLanguageFlag(),
-                      style: const TextStyle(fontSize: 24),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            AppLocalizations.of(context)!.currentLanguage,
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: AppColors.getTextSecondaryColor(themeProvider.isDarkMode),
-                            ),
-                          ),
-                          Text(
-                            languageProvider.getCurrentLanguageName(),
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.getTextColor(themeProvider.isDarkMode),
-                            ),
-                          ),
-                        ],
+                    decoration: InputDecoration(
+                      hintText: AppLocalizations.of(context)!.searchLanguages,
+                      hintStyle: TextStyle(
+                        color: AppColors.getTextSecondaryColor(themeProvider.isDarkMode),
                       ),
+                      border: InputBorder.none,
+                      prefixIcon: Icon(
+                        Icons.search,
+                        color: AppColors.getTextSecondaryColor(themeProvider.isDarkMode),
+                      ),
+                      suffixIcon: _searchController.text.isNotEmpty
+                          ? IconButton(
+                              onPressed: () {
+                                _searchController.clear();
+                                _filterLanguages('');
+                              },
+                              icon: Icon(
+                                Icons.clear,
+                                color: AppColors.getTextSecondaryColor(themeProvider.isDarkMode),
+                              ),
+                            )
+                          : null,
                     ),
-                    Icon(
-                      Icons.check_circle,
-                      color: AppColors.success,
-                      size: 24,
-                    ),
-                  ],
+                  ),
                 ),
-              ),
 
-              // Section Headers
-              if (_filteredLanguages.isNotEmpty) ...[
-                // Indian Languages Section
-                if (_filteredLanguages.any((lang) => lang['flag'] == '🇮🇳')) ...[
-                  _buildSectionHeader('Indian Languages', themeProvider.isDarkMode),
-                  ..._buildLanguageList(
-                    _filteredLanguages.where((lang) => lang['flag'] == '🇮🇳').toList(),
-                    languageProvider,
-                    themeProvider.isDarkMode,
+                // Current Language Section
+                Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.primary),
                   ),
-                ],
-                
-                // Other Languages Section
-                if (_filteredLanguages.any((lang) => lang['flag'] != '🇮🇳')) ...[
-                  _buildSectionHeader('Other Languages', themeProvider.isDarkMode),
-                  ..._buildLanguageList(
-                    _filteredLanguages.where((lang) => lang['flag'] != '🇮🇳').toList(),
-                    languageProvider,
-                    themeProvider.isDarkMode,
+                  child: Row(
+                    children: [
+                      Text(
+                        languageProvider.getCurrentLanguageFlag(),
+                        style: const TextStyle(fontSize: 24),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              AppLocalizations.of(context)!.currentLanguage,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: AppColors.getTextSecondaryColor(themeProvider.isDarkMode),
+                              ),
+                            ),
+                            Text(
+                              languageProvider.getCurrentLanguageName(),
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.getTextColor(themeProvider.isDarkMode),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Icon(
+                        Icons.check_circle,
+                        color: AppColors.success,
+                        size: 24,
+                      ),
+                    ],
                   ),
-                ],
-              ] else ...[
-                // No Results
+                ),
+
+                // Languages list (scrollable)
                 Expanded(
-                  child: Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.search_off,
-                          size: 64,
-                          color: AppColors.getTextSecondaryColor(themeProvider.isDarkMode),
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          AppLocalizations.of(context)!.currentLanguage,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: AppColors.getTextSecondaryColor(themeProvider.isDarkMode),
+                  child: _filteredLanguages.isNotEmpty
+                      ? ListView(
+                          padding: const EdgeInsets.only(bottom: 16),
+                          children: [
+                            if (_filteredLanguages.any((lang) => lang['flag'] == '🇮🇳')) ...[
+                              _buildSectionHeader('Indian Languages', themeProvider.isDarkMode),
+                              ..._buildLanguageList(
+                                _filteredLanguages.where((lang) => lang['flag'] == '🇮🇳').toList(),
+                                languageProvider,
+                                themeProvider.isDarkMode,
+                              ),
+                            ],
+                            if (_filteredLanguages.any((lang) => lang['flag'] != '🇮🇳')) ...[
+                              _buildSectionHeader('Other Languages', themeProvider.isDarkMode),
+                              ..._buildLanguageList(
+                                _filteredLanguages.where((lang) => lang['flag'] != '🇮🇳').toList(),
+                                languageProvider,
+                                themeProvider.isDarkMode,
+                              ),
+                            ],
+                          ],
+                        )
+                      : Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.search_off,
+                                size: 64,
+                                color: AppColors.getTextSecondaryColor(themeProvider.isDarkMode),
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                AppLocalizations.of(context)!.currentLanguage,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: AppColors.getTextSecondaryColor(themeProvider.isDarkMode),
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                'Try searching with a different term',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: AppColors.getTextSecondaryColor(themeProvider.isDarkMode),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Try searching with a different term',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: AppColors.getTextSecondaryColor(themeProvider.isDarkMode),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
                 ),
               ],
-            ],
+            ),
           ),
         );
       },

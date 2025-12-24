@@ -1,4 +1,4 @@
-# Karma Shop - E-commerce Flutter App
+# KarmaGully - E-commerce Flutter App
 
 A simple yet feature-rich e-commerce application built with Flutter, featuring both customer and admin interfaces.
 

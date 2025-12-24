@@ -52,7 +52,7 @@ class NotificationService {
     final url = Uri.parse('https://api.resend.com/emails');
     final subject = 'New Order Placed — ${order.id}';
     final body = StringBuffer();
-    body.writeln('A new order was placed in Karma Shop:');
+    body.writeln('A new order was placed in KarmaGully:');
     body.writeln('Order ID: ${order.id}');
     body.writeln('Customer: ${order.customerName}');
     body.writeln('Email: ${order.customerEmail}');
