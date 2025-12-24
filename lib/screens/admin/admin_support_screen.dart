@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'dart:io';
 import '../../providers/support_provider.dart';
+import '../../providers/order_provider.dart';
 import '../../providers/theme_provider.dart';
 import '../../models/support_ticket.dart';
 import '../../models/support_message.dart';
@@ -422,16 +424,35 @@ class _AdminSupportScreenState extends State<AdminSupportScreen> with SingleTick
                 },
               ),
             ),
-            ListTile(
+                ListTile(
               title: const Text('In Progress'),
               leading: Radio<String>(
                 value: 'in_progress',
                 groupValue: ticket.status,
-                onChanged: (value) {
+                onChanged: (value) async {
                   Navigator.pop(context);
                   if (value != null) {
-                    Provider.of<SupportProvider>(context, listen: false)
+                    // Update status
+                    await Provider.of<SupportProvider>(context, listen: false)
                         .updateTicketStatus(ticket.id, value);
+
+                    // If this ticket is related to an order, send order details into the chat
+                    if (ticket.orderId != null) {
+                      final orderProvider = Provider.of<OrderProvider>(context, listen: false);
+                      final order = orderProvider.getOrderById(ticket.orderId!);
+                      if (order != null) {
+                        // Send a message from admin containing order summary and details
+                        await Provider.of<SupportProvider>(context, listen: false)
+                            .sendMessageWithOrderDetails(
+                          ticketId: ticket.id,
+                          senderId: 'admin',
+                          senderName: 'Support Team',
+                          senderType: 'admin',
+                          message: 'I have accepted your request and attached the order details below.',
+                          order: order,
+                        );
+                      }
+                    }
                   }
                 },
               ),
@@ -747,45 +768,50 @@ class _AdminSupportChatScreenState extends State<AdminSupportChatScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       color: AppColors.getCardBackgroundColor(isDarkMode),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: _getStatusColor(widget.ticket.status),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    widget.ticket.statusDisplayName,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                    ),
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: _getStatusColor(widget.ticket.status),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  widget.ticket.statusDisplayName,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
-                const SizedBox(width: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: _getPriorityColor(widget.ticket.priority),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    widget.ticket.priorityDisplayName,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                    ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: _getPriorityColor(widget.ticket.priority),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  widget.ticket.priorityDisplayName,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
-              ],
-            ),
+              ),
+              const Spacer(),
+              Text(
+                'Priority: ${widget.ticket.priorityDisplayName}',
+                style: const TextStyle(fontSize: 12, color: Colors.transparent),
+              ),
+            ],
           ),
+          const SizedBox(height: 8),
           if (widget.ticket.orderId != null)
             Text(
               'Order: ${widget.ticket.orderId}',
@@ -793,6 +819,7 @@ class _AdminSupportChatScreenState extends State<AdminSupportChatScreen> {
                 color: AppColors.getTextColor(isDarkMode).withOpacity(0.7),
                 fontSize: 12,
               ),
+              overflow: TextOverflow.visible,
             ),
         ],
       ),
@@ -824,10 +851,6 @@ class _AdminSupportChatScreenState extends State<AdminSupportChatScreen> {
                 color: isAdmin 
                     ? AppColors.primary 
                     : AppColors.getCardBackgroundColor(isDarkMode),
-                borderRadius: BorderRadius.circular(16),
-                border: !isAdmin
-                    ? Border.all(color: AppColors.getBorderColor(isDarkMode))
-                    : null,
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -840,6 +863,76 @@ class _AdminSupportChatScreenState extends State<AdminSupportChatScreen> {
                           : AppColors.getTextColor(isDarkMode),
                     ),
                   ),
+                  // If message includes order details, show primary product image and name (safe constraints)
+                  if (message.orderDetails != null && message.orderDetails!['items'] != null && (message.orderDetails!['items'] as List).isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Builder(builder: (context) {
+                      try {
+                        final items = message.orderDetails!['items'] as List;
+                        final first = items.first as Map<String, dynamic>;
+                        final imageUrl = first['productImage']?.toString() ?? '';
+                        final productName = first['productName']?.toString() ?? '';
+
+                        return GestureDetector(
+                          onTap: () {},
+                          child: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: isAdmin ? Colors.white24 : Colors.grey.shade50,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Row(
+                              children: [
+                                if (imageUrl.isNotEmpty) ...[
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: imageUrl.startsWith('http')
+                                        ? Image.network(
+                                            imageUrl,
+                                            width: 56,
+                                            height: 56,
+                                            fit: BoxFit.cover,
+                                            errorBuilder: (_, __, ___) => Container(
+                                              width: 56,
+                                              height: 56,
+                                              color: Colors.grey.shade200,
+                                              child: const Icon(Icons.broken_image),
+                                            ),
+                                          )
+                                        : (imageUrl.isNotEmpty && File(imageUrl).existsSync())
+                                            ? Image.file(
+                                                File(imageUrl),
+                                                width: 56,
+                                                height: 56,
+                                                fit: BoxFit.cover,
+                                              )
+                                            : Container(
+                                                width: 56,
+                                                height: 56,
+                                                color: Colors.grey.shade200,
+                                                child: const Icon(Icons.broken_image),
+                                              ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                ],
+                                Expanded(
+                                  child: Text(
+                                    productName.isNotEmpty ? productName : 'Product attached',
+                                    style: TextStyle(
+                                      color: isAdmin ? Colors.white : AppColors.getTextColor(isDarkMode),
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      } catch (e) {
+                        return const SizedBox.shrink();
+                      }
+                    }),
+                  ],
                   const SizedBox(height: 4),
                   Text(
                     _formatMessageTime(message.timestamp),
@@ -977,7 +1070,7 @@ class _AdminSupportChatScreenState extends State<AdminSupportChatScreen> {
             const SizedBox(height: 8),
             const Text('Status: Processing'),
             const SizedBox(height: 8),
-            const Text('Total: \$99.99'),
+            const Text('Total: ₹99.99'),
             const SizedBox(height: 8),
             const Text('Items: 3'),
             const SizedBox(height: 8),

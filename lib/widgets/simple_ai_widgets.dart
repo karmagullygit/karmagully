@@ -248,7 +248,7 @@ class SimpleAIFeaturedCollection extends StatelessWidget {
                   children: [
                     if (aiProvider.currentDiscount > 0) ...[
                       Text(
-                        '\$29.99',
+                        '₹29.99',
                         style: TextStyle(
                           fontSize: 10,
                           color: Colors.grey[600],
@@ -266,7 +266,7 @@ class SimpleAIFeaturedCollection extends StatelessWidget {
                       ),
                     ] else ...[
                       const Text(
-                        '\$29.99',
+                        '₹29.99',
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.bold,

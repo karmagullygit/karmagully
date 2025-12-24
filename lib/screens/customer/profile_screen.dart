@@ -11,7 +11,17 @@ import '../../providers/order_provider.dart';
 import '../../providers/wishlist_provider.dart';
 import '../../providers/language_provider.dart';
 import '../../providers/review_provider.dart';
+import '../../providers/support_provider.dart';
 import '../../providers/social_media_provider.dart';
+import 'customer_chat_screen.dart';
+import '../info/about_screen.dart';
+import '../info/privacy_policy_screen.dart';
+import '../info/terms_screen.dart';
+import '../info/refund_screen.dart';
+import '../info/shipping_screen.dart';
+import '../info/pricing_screen.dart';
+import '../info/contact_screen.dart';
+import '../info/account_deletion_screen.dart';
 import '../../utils/navigation_helper.dart';
 import '../customer/language_selection_screen.dart';
 import '../customer/customer_support_screen.dart';
@@ -34,6 +44,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
       // Demo orders are created via addOrder method instead
       // Load social media links
       Provider.of<SocialMediaProvider>(context, listen: false).loadSocialMediaLinks();
+
+      // Ensure customer's support tickets are fresh so "Customer support chat" appears
+      final auth = Provider.of<AuthProvider>(context, listen: false);
+      if (auth.currentUser != null) {
+        Provider.of<SupportProvider>(context, listen: false).loadCustomerTickets(auth.currentUser!.id);
+      }
     });
   }
 
@@ -360,7 +376,71 @@ class _ProfileScreenState extends State<ProfileScreen> {
           isDarkMode,
         ),
         _buildCustomerSupportTile(isDarkMode),
+        _buildCustomerSupportChatTile(isDarkMode),
       ],
+    );
+  }
+
+  Widget _buildCustomerSupportChatTile(bool isDarkMode) {
+    return Consumer2<SupportProvider, AuthProvider>(
+      builder: (context, supportProvider, auth, child) {
+        final user = auth.currentUser;
+        if (user == null) return const SizedBox.shrink();
+
+        // Find an active ticket for this user that is in progress or assigned
+        final tickets = supportProvider.getCustomerTickets(user.id);
+        final activeList = tickets.where((t) => t.status == 'in_progress' || (t.assignedToAdminId != null)).toList();
+        if (activeList.isEmpty) {
+          // Locked state - don't show tile if no accepted ticket
+          return const SizedBox.shrink();
+        }
+
+        final active = activeList.first;
+
+        return Container(
+          margin: const EdgeInsets.only(bottom: 8),
+          decoration: BoxDecoration(
+            color: AppColors.getCardBackgroundColor(isDarkMode),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.getBorderColor(isDarkMode)),
+          ),
+          child: ListTile(
+            leading: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppColors.primary,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(
+                Icons.chat,
+                color: Colors.white,
+                size: 20,
+              ),
+            ),
+            title: const Text(
+              'Customer support chat',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+              ),
+            ),
+            subtitle: const Text('Chat with support about your request'),
+            trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+            onTap: () async {
+              // Ensure messages loaded and navigate to chat for the active ticket
+              await Provider.of<SupportProvider>(context, listen: false)
+                  .loadMessages(active.id);
+
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => CustomerChatScreen(ticketId: active.id),
+                ),
+              );
+            },
+          ),
+        );
+      },
     );
   }
 
@@ -751,6 +831,31 @@ class _ProfileScreenState extends State<ProfileScreen> {
               Divider(color: AppColors.getBorderColor(isDarkMode), height: 1),
               ListTile(
                 leading: Icon(
+                  Icons.info_outline,
+                  color: AppColors.primary,
+                ),
+                title: Text(
+                  'About',
+                  style: TextStyle(
+                    color: AppColors.getTextColor(isDarkMode),
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                trailing: Icon(
+                  Icons.arrow_forward_ios,
+                  size: 16,
+                  color: AppColors.getTextSecondaryColor(isDarkMode),
+                ),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const AboutScreen()),
+                  );
+                },
+              ),
+              Divider(color: AppColors.getBorderColor(isDarkMode), height: 1),
+              ListTile(
+                leading: Icon(
                   Icons.privacy_tip_outlined,
                   color: AppColors.primary,
                 ),
@@ -767,7 +872,160 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   color: AppColors.getTextSecondaryColor(isDarkMode),
                 ),
                 onTap: () {
-                  // Navigate to privacy policy
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const PrivacyPolicyScreen()),
+                  );
+                },
+              ),
+              Divider(color: AppColors.getBorderColor(isDarkMode), height: 1),
+              ListTile(
+                leading: Icon(
+                  Icons.article_outlined,
+                  color: AppColors.primary,
+                ),
+                title: Text(
+                  'Terms & Conditions',
+                  style: TextStyle(
+                    color: AppColors.getTextColor(isDarkMode),
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                trailing: Icon(
+                  Icons.arrow_forward_ios,
+                  size: 16,
+                  color: AppColors.getTextSecondaryColor(isDarkMode),
+                ),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const TermsScreen()),
+                  );
+                },
+              ),
+              Divider(color: AppColors.getBorderColor(isDarkMode), height: 1),
+              ListTile(
+                leading: Icon(
+                  Icons.receipt_long,
+                  color: AppColors.primary,
+                ),
+                title: Text(
+                  'Refund & Cancellation',
+                  style: TextStyle(
+                    color: AppColors.getTextColor(isDarkMode),
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                trailing: Icon(
+                  Icons.arrow_forward_ios,
+                  size: 16,
+                  color: AppColors.getTextSecondaryColor(isDarkMode),
+                ),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const RefundScreen()),
+                  );
+                },
+              ),
+              Divider(color: AppColors.getBorderColor(isDarkMode), height: 1),
+              ListTile(
+                leading: Icon(
+                  Icons.local_shipping,
+                  color: AppColors.primary,
+                ),
+                title: Text(
+                  'Shipping & Delivery',
+                  style: TextStyle(
+                    color: AppColors.getTextColor(isDarkMode),
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                trailing: Icon(
+                  Icons.arrow_forward_ios,
+                  size: 16,
+                  color: AppColors.getTextSecondaryColor(isDarkMode),
+                ),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const ShippingScreen()),
+                  );
+                },
+              ),
+              Divider(color: AppColors.getBorderColor(isDarkMode), height: 1),
+              ListTile(
+                leading: Icon(
+                  Icons.format_paint,
+                  color: AppColors.primary,
+                ),
+                title: Text(
+                  'Pricing & Product Info',
+                  style: TextStyle(
+                    color: AppColors.getTextColor(isDarkMode),
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                trailing: Icon(
+                  Icons.arrow_forward_ios,
+                  size: 16,
+                  color: AppColors.getTextSecondaryColor(isDarkMode),
+                ),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const PricingScreen()),
+                  );
+                },
+              ),
+              Divider(color: AppColors.getBorderColor(isDarkMode), height: 1),
+              ListTile(
+                leading: Icon(
+                  Icons.contact_support,
+                  color: AppColors.primary,
+                ),
+                title: Text(
+                  'Contact & Support',
+                  style: TextStyle(
+                    color: AppColors.getTextColor(isDarkMode),
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                trailing: Icon(
+                  Icons.arrow_forward_ios,
+                  size: 16,
+                  color: AppColors.getTextSecondaryColor(isDarkMode),
+                ),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const ContactScreen()),
+                  );
+                },
+              ),
+              Divider(color: AppColors.getBorderColor(isDarkMode), height: 1),
+              ListTile(
+                leading: Icon(
+                  Icons.delete_outline,
+                  color: AppColors.primary,
+                ),
+                title: Text(
+                  'Account & Data Deletion',
+                  style: TextStyle(
+                    color: AppColors.getTextColor(isDarkMode),
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                trailing: Icon(
+                  Icons.arrow_forward_ios,
+                  size: 16,
+                  color: AppColors.getTextSecondaryColor(isDarkMode),
+                ),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const AccountDeletionScreen()),
+                  );
                 },
               ),
               Divider(color: AppColors.getBorderColor(isDarkMode), height: 1),

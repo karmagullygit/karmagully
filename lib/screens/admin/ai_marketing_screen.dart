@@ -84,7 +84,7 @@ class _AIMarketingScreenState extends State<AIMarketingScreen> {
                     Expanded(
                       child: TextField(
                         controller: _budgetController,
-                        decoration: const InputDecoration(labelText: 'Budget (e.g. low / medium / high or \$100)'),
+                        decoration: const InputDecoration(labelText: 'Budget (e.g. low / medium / high or ₹100)'),
                       ),
                     ),
                     const SizedBox(width: 12),

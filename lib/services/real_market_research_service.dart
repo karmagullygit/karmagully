@@ -67,13 +67,13 @@ class RealMarketResearchService {
     
     return {
       'globalMarketSize': {
-        'value': '\$31.12 billion',
+        'value': '₹31.12 billion',
         'year': 2024,
         'growth': '9.8% CAGR (2024-2031)',
         'source': 'Grand View Research'
       },
       'posterMarketSegment': {
-        'size': '\$2.1 billion (wall art & posters)',
+        'size': '₹2.1 billion (wall art & posters)',
         'growth': '12.3% annually',
         'onlineShare': '67%',
         'source': 'Euromonitor International'
@@ -83,35 +83,35 @@ class RealMarketResearchService {
           'name': 'Jujutsu Kaisen',
           'popularityScore': 95,
           'searchVolume': '2.4M monthly',
-          'merchandiseRevenue': '\$180M+',
+          'merchandiseRevenue': '₹180M+',
           'trending': 'Rising'
         },
         {
           'name': 'Demon Slayer',
           'popularityScore': 92,
           'searchVolume': '1.8M monthly',
-          'merchandiseRevenue': '\$200M+',
+          'merchandiseRevenue': '₹200M+',
           'trending': 'Stable High'
         },
         {
           'name': 'Attack on Titan',
           'popularityScore': 88,
           'searchVolume': '1.5M monthly',
-          'merchandiseRevenue': '\$150M+',
+          'merchandiseRevenue': '₹150M+',
           'trending': 'Stable'
         },
         {
           'name': 'One Piece',
           'popularityScore': 90,
           'searchVolume': '2.1M monthly',
-          'merchandiseRevenue': '\$300M+',
+          'merchandiseRevenue': '₹300M+',
           'trending': 'Growing'
         },
         {
           'name': 'My Hero Academia',
           'popularityScore': 85,
           'searchVolume': '1.2M monthly',
-          'merchandiseRevenue': '\$120M+',
+          'merchandiseRevenue': '₹120M+',
           'trending': 'Stable'
         }
       ],
@@ -130,7 +130,7 @@ class RealMarketResearchService {
         'secondaryAge': '13-25 years (22%)',
         'genderSplit': '52% male, 48% female',
         'geographicMarkets': ['North America (35%)', 'Asia-Pacific (40%)', 'Europe (25%)'],
-        'avgSpending': '\$85/year on anime merchandise',
+        'avgSpending': '₹85/year on anime merchandise',
         'source': 'Anime News Network Survey 2024'
       },
       'seasonalTrends': {
@@ -151,9 +151,9 @@ class RealMarketResearchService {
       CompetitorInsight(
         competitorName: 'Displate',
         pricing: {
-          'small': '\$22-27',
-          'medium': '\$35-42',
-          'large': '\$58-72',
+          'small': '₹22-27',
+          'medium': '₹35-42',
+          'large': '₹58-72',
           'positioning': 'Premium metal posters'
         },
         strengths: [
@@ -173,8 +173,8 @@ class RealMarketResearchService {
       CompetitorInsight(
         competitorName: 'Hot Topic',
         pricing: {
-          'posters': '\$8-15',
-          'metalArt': '\$25-35',
+          'posters': '₹8-15',
+          'metalArt': '₹25-35',
           'positioning': 'Mass market retail'
         },
         strengths: [
@@ -194,8 +194,8 @@ class RealMarketResearchService {
       CompetitorInsight(
         competitorName: 'Etsy Sellers',
         pricing: {
-          'prints': '\$5-20',
-          'custom': '\$15-45',
+          'prints': '₹5-20',
+          'custom': '₹15-45',
           'positioning': 'Handmade/Custom'
         },
         strengths: [
@@ -222,9 +222,9 @@ class RealMarketResearchService {
     return {
       'marketPricing': {
         'standardPosters': {
-          'low': '\$8-15 (paper prints)',
-          'mid': '\$20-35 (canvas/metal)',
-          'high': '\$45-80 (premium/limited)',
+          'low': '₹8-15 (paper prints)',
+          'mid': '₹20-35 (canvas/metal)',
+          'high': '₹45-80 (premium/limited)',
           'sweetSpot': '\$25-35 for metal posters'
         },
         'customPosters': {

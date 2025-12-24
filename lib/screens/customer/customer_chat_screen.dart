@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'dart:io';
 import '../../constants/app_colors.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/support_provider.dart';
@@ -341,6 +342,78 @@ class _CustomerChatScreenState extends State<CustomerChatScreen> {
                       fontSize: 16,
                     ),
                   ),
+                  // If message includes order details, show primary product image and name
+                  if (message.orderDetails != null && message.orderDetails!['items'] != null && (message.orderDetails!['items'] as List).isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Builder(builder: (context) {
+                      try {
+                        final items = message.orderDetails!['items'] as List;
+                        final first = items.first as Map<String, dynamic>;
+                        final imageUrl = first['productImage']?.toString() ?? '';
+                        final productName = first['productName']?.toString() ?? '';
+
+                        return GestureDetector(
+                          onTap: () {
+                            // Could open product detail in the future
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: isMyMessage ? Colors.white24 : Colors.grey.shade50,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Row(
+                              children: [
+                                if (imageUrl.isNotEmpty) ...[
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: imageUrl.startsWith('http')
+                                        ? Image.network(
+                                            imageUrl,
+                                            width: 56,
+                                            height: 56,
+                                            fit: BoxFit.cover,
+                                            errorBuilder: (_, __, ___) => Container(
+                                              width: 56,
+                                              height: 56,
+                                              color: Colors.grey.shade200,
+                                              child: const Icon(Icons.broken_image),
+                                            ),
+                                          )
+                                        : File(imageUrl).existsSync()
+                                            ? Image.file(
+                                                File(imageUrl),
+                                                width: 56,
+                                                height: 56,
+                                                fit: BoxFit.cover,
+                                              )
+                                            : Container(
+                                                width: 56,
+                                                height: 56,
+                                                color: Colors.grey.shade200,
+                                                child: const Icon(Icons.broken_image),
+                                              ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                ],
+                                Expanded(
+                                  child: Text(
+                                    productName.isNotEmpty ? productName : 'Product attached',
+                                    style: TextStyle(
+                                      color: isMyMessage ? Colors.white : Colors.black87,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      } catch (e) {
+                        return const SizedBox.shrink();
+                      }
+                    }),
+                  ],
                 ],
               ),
             ),
