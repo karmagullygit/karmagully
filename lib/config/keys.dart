@@ -2,24 +2,16 @@
 // IMPORTANT: Do NOT store private/secret keys in the client for production.
 // Use a secure server to sign/create orders and keep secrets off the app.
 
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
 class AppKeys {
   // Razorpay public key (test or live).
-  // Prefer injecting via --dart-define at build/run time.
-  //   flutter run --dart-define=RAZORPAY_KEY=rzp_live_xxxxxx
-  // The value below falls back if not provided via --dart-define.
-  static const String razorpayKey = String.fromEnvironment(
-    'RAZORPAY_KEY',
-    defaultValue: '', // PASS YOUR KEY VIA --dart-define
-  );
+  // Read from .env file
+  static String get razorpayKey => dotenv.env['RAZORPAY_KEY'] ?? '';
 
-  // IMPORTANT: Razorpay secret (the key that looks like rzp_secret_xxxx)
-  // Create orders and verify payments on a secure backend using this key.
-  // For local testing only you can optionally provide the secret here.
-  // flutter run --dart-define=RAZORPAY_SECRET=rzp_secret_xxx
-  static const String razorpaySecret = String.fromEnvironment(
-    'RAZORPAY_SECRET',
-    defaultValue: '', // PASS YOUR SECRET VIA --dart-define
-  );
+  // IMPORTANT: Razorpay secret
+  // Read from .env file
+  static String get razorpaySecret => dotenv.env['RAZORPAY_SECRET'] ?? '';
 
   // Optional backend base URL for order creation and verification (preferred).
   // Example: flutter run --dart-define=BACKEND_BASE_URL=https://abcd.ngrok.io

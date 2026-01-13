@@ -63,7 +63,11 @@ import 'screens/admin/admin_promotional_banners_screen.dart';
 import 'screens/admin/admin_anime_poster_bot_screen.dart';
 import 'screens/admin/admin_flash_sales_screen.dart';
 
-void main() {
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await dotenv.load(fileName: ".env");
   runApp(const KarmaGullyApp());
 }
 
@@ -110,37 +114,64 @@ class KarmaGullyApp extends StatelessWidget {
         builder: (context, authProvider, themeProvider, languageProvider, child) {
           // Initialize prediction provider with real data providers
           WidgetsBinding.instance.addPostFrameCallback((_) {
-            final predictionProvider = Provider.of<PredictionProvider>(context, listen: false);
-            final productProvider = Provider.of<ProductProvider>(context, listen: false);
-            final orderProvider = Provider.of<OrderProvider>(context, listen: false);
-            final simpleAIProvider = Provider.of<SimpleAIProvider>(context, listen: false);
-            final socialFeedProvider = Provider.of<SocialFeedProvider>(context, listen: false);
-            final animeBotProvider = Provider.of<AnimePosterBotProvider>(context, listen: false);
-            
+            final predictionProvider = Provider.of<PredictionProvider>(
+              context,
+              listen: false,
+            );
+            final productProvider = Provider.of<ProductProvider>(
+              context,
+              listen: false,
+            );
+            final orderProvider = Provider.of<OrderProvider>(
+              context,
+              listen: false,
+            );
+            final simpleAIProvider = Provider.of<SimpleAIProvider>(
+              context,
+              listen: false,
+            );
+            final socialFeedProvider = Provider.of<SocialFeedProvider>(
+              context,
+              listen: false,
+            );
+            final animeBotProvider = Provider.of<AnimePosterBotProvider>(
+              context,
+              listen: false,
+            );
+
             // Connect SimpleAIProvider with ProductProvider for real product access
             simpleAIProvider.setProductProvider(productProvider);
-            
-            predictionProvider.initializeWithProviders(productProvider, orderProvider);
-            
+
+            predictionProvider.initializeWithProviders(
+              productProvider,
+              orderProvider,
+            );
+
             // Connect SocialFeedProvider with AuthProvider for profile pictures
             socialFeedProvider.setAuthProvider(authProvider);
-            
+
             // Initialize Simple AI system
-            final simpleAI = Provider.of<SimpleAIProvider>(context, listen: false);
+            final simpleAI = Provider.of<SimpleAIProvider>(
+              context,
+              listen: false,
+            );
             simpleAI.initialize();
-            
+
             // 🤖 Initialize Anime Poster Bot
             animeBotProvider.initialize(productProvider);
-            
+
             // 🤖 Initialize Product Bot Service
-            final botService = ProductBotService(socialFeedProvider, productProvider);
+            final botService = ProductBotService(
+              socialFeedProvider,
+              productProvider,
+            );
             productProvider.setBotService(botService);
             botService.startBot();
-            
+
             print('🚀 Simple AI Marketing System initialized successfully!');
             print('🤖 Product Bot Service activated! Auto-posting enabled.');
           });
-          
+
           return MaterialApp(
             title: 'KarmaGully',
             debugShowCheckedModeBanner: false,
@@ -167,27 +198,40 @@ class KarmaGullyApp extends StatelessWidget {
               '/customer-support': (context) => const CustomerSupportScreen(),
               '/admin-support': (context) => const AdminSupportScreen(),
               '/admin-coupons': (context) => const AdminCouponsScreen(),
-              '/customer-flash-sales': (context) => const CustomerFlashSalesScreen(),
+              '/customer-flash-sales': (context) =>
+                  const CustomerFlashSalesScreen(),
               '/flash-sale-detail': (context) => const FlashSaleDetailScreen(),
-              '/notification-management': (context) => const NotificationManagementScreen(),
+              '/notification-management': (context) =>
+                  const NotificationManagementScreen(),
               '/notifications': (context) => const NotificationsScreen(),
-              '/notification-settings': (context) => const NotificationSettingsScreen(),
+              '/notification-settings': (context) =>
+                  const NotificationSettingsScreen(),
               '/order-history': (context) => const OrderHistoryScreen(),
               '/social-feed': (context) => const SocialFeedScreen(),
               '/create-post': (context) => const CreatePostScreen(),
-              '/admin-predictions': (context) => const AdminPredictionDashboard(),
+              '/admin-predictions': (context) =>
+                  const AdminPredictionDashboard(),
               '/addresses': (context) => const AddressesScreen(),
-              '/admin-user-management': (context) => const AdminUserManagementScreen(),
-              '/customer-management': (context) => const CustomerManagementScreen(),
-              '/admin-reports-management': (context) => const ReportsManagementScreen(),
-              '/admin-notification-settings': (context) => const admin_notif.NotificationSettingsScreen(),
+              '/admin-user-management': (context) =>
+                  const AdminUserManagementScreen(),
+              '/customer-management': (context) =>
+                  const CustomerManagementScreen(),
+              '/admin-reports-management': (context) =>
+                  const ReportsManagementScreen(),
+              '/admin-notification-settings': (context) =>
+                  const admin_notif.NotificationSettingsScreen(),
               '/user-verification': (context) => const UserVerificationScreen(),
               '/admin-video-ads': (context) => const AdminVideoAdsScreen(),
-              '/admin-social-media': (context) => const AdminSocialMediaScreen(),
-              '/admin-bot-settings': (context) => const AdminBotSettingsScreen(),
-              '/admin-official-bot': (context) => const AdminOfficialBotScreen(),
-              '/admin-promotional-banners': (context) => const AdminPromotionalBannersScreen(),
-              '/admin-anime-poster-bot': (context) => const AdminAnimePosterBotScreen(),
+              '/admin-social-media': (context) =>
+                  const AdminSocialMediaScreen(),
+              '/admin-bot-settings': (context) =>
+                  const AdminBotSettingsScreen(),
+              '/admin-official-bot': (context) =>
+                  const AdminOfficialBotScreen(),
+              '/admin-promotional-banners': (context) =>
+                  const AdminPromotionalBannersScreen(),
+              '/admin-anime-poster-bot': (context) =>
+                  const AdminAnimePosterBotScreen(),
               '/admin-flash-sales': (context) => const AdminFlashSalesScreen(),
             },
           );
@@ -200,11 +244,11 @@ class KarmaGullyApp extends StatelessWidget {
     if (!authProvider.isLoggedIn) {
       return const LoginScreen();
     }
-    
+
     if (authProvider.isAdmin) {
       return const AdminDashboard();
     }
-    
+
     return const HomeScreen();
   }
 }
