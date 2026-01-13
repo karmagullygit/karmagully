@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:razorpay_flutter/razorpay_flutter.dart';
 import 'package:http/http.dart' as http;
@@ -9,6 +10,7 @@ import '../config/keys.dart';
 /// Keep the Razorpay secret on your server and create orders there.
 class RazorpayService {
   late Razorpay _razorpay;
+  String? _currentOrderDbId;
 
   void init() {
     _razorpay = Razorpay();
@@ -31,15 +33,25 @@ class RazorpayService {
     final int amountInPaise = (amountInRupees * 100).round();
     String? usedOrderId = orderId;
 
-    // If a secret key is available (for local testing only), create the order via Razorpay REST API.
-    if ((AppKeys.razorpaySecret ?? '').isNotEmpty) {
+    // Preferred: create order on your secure backend which uses the Razorpay secret.
+    if (AppKeys.backendBaseUrl.isNotEmpty) {
+      try {
+        final created = await _createOrderOnBackend(amountInPaise);
+        if (created != null && created['id'] != null) {
+          usedOrderId = created['id'];
+          _currentOrderDbId = created['order_db_id']?.toString();
+        }
+      } catch (e) {
+        debugPrint('Failed to create order on backend: $e');
+      }
+    } else if (AppKeys.razorpaySecret.isNotEmpty) {
+      // Fallback (local testing only): create order directly using secret (NOT for production)
       try {
         final created = await _createOrderViaSecret(amountInPaise);
         if (created != null && created['id'] != null) {
           usedOrderId = created['id'];
         }
       } catch (e) {
-        // Fall back to client-only checkout without server-created order
         debugPrint('Failed to create order via secret: $e');
       }
     }
@@ -76,7 +88,10 @@ class RazorpayService {
       'payment_capture': 1,
     });
 
-    final auth = base64Encode(utf8.encode('$secret:'));
+    // NOTE: This uses Basic auth with key_id:key_secret. We expect the secret to be the key_secret
+    // and the key id must be provided via AppKeys.razorpayKey when using this method.
+    final keyId = AppKeys.razorpayKey;
+    final auth = base64Encode(utf8.encode('$keyId:$secret'));
 
     final resp = await http.post(uri, body: body, headers: {
       'Content-Type': 'application/json',
@@ -89,16 +104,68 @@ class RazorpayService {
     throw Exception('Order creation failed: ${resp.statusCode} ${resp.body}');
   }
 
+  Future<Map<String, dynamic>?> _createOrderOnBackend(int amountInPaise) async {
+    final base = AppKeys.backendBaseUrl;
+    if (base.isEmpty) return null;
+
+    final uri = Uri.parse(base).resolve('/api/payment/create-order');
+
+    final body = json.encode({
+      'items': [],
+      'amount': amountInPaise,
+      'currency': 'INR',
+      'customer': {},
+    });
+
+    final resp = await http.post(uri, headers: {'Content-Type': 'application/json'}, body: body);
+    if (resp.statusCode == 200) {
+      return json.decode(resp.body) as Map<String, dynamic>;
+    }
+    throw Exception('Backend order creation failed: ${resp.statusCode} ${resp.body}');
+  }
+
+  Future<bool> _verifyPaymentOnBackend({required String razorpayOrderId, required String razorpayPaymentId, required String razorpaySignature}) async {
+    final base = AppKeys.backendBaseUrl;
+    if (base.isEmpty) return false;
+    final uri = Uri.parse(base).resolve('/api/payment/verify-payment');
+    final body = json.encode({
+      'razorpay_order_id': razorpayOrderId,
+      'razorpay_payment_id': razorpayPaymentId,
+      'razorpay_signature': razorpaySignature,
+      'order_db_id': _currentOrderDbId,
+    });
+    final resp = await http.post(uri, headers: {'Content-Type': 'application/json'}, body: body);
+    return resp.statusCode == 200;
+  }
+
   void _handlePaymentSuccess(PaymentSuccessResponse response) {
-    // Notify backend to verify signature using secret key.
-    print('Razorpay payment success: ${response.paymentId}');
+    debugPrint('Razorpay payment success: ${response.paymentId}');
+    // If backend is configured, call verify endpoint to validate signature and mark order PAID
+    if (AppKeys.backendBaseUrl.isNotEmpty) {
+      () async {
+        try {
+          final ok = await _verifyPaymentOnBackend(
+            razorpayOrderId: response.orderId ?? '',
+            razorpayPaymentId: response.paymentId ?? '',
+            razorpaySignature: response.signature ?? '',
+          );
+          if (ok) {
+            debugPrint('Payment verified by backend');
+          } else {
+            debugPrint('Payment verification failed on backend');
+          }
+        } catch (e) {
+          debugPrint('verify error: $e');
+        }
+      }();
+    }
   }
 
   void _handlePaymentError(PaymentFailureResponse response) {
-    print('Razorpay payment error: ${response.code} - ${response.message}');
+    debugPrint('Razorpay payment error: ${response.code} - ${response.message}');
   }
 
   void _handleExternalWallet(ExternalWalletResponse response) {
-    print('Razorpay external wallet: ${response.walletName}');
+    debugPrint('Razorpay external wallet: ${response.walletName}');
   }
 }

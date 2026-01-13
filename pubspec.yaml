@@ -40,7 +40,7 @@ dependencies:
   provider: ^6.1.2
   
   # HTTP and Data
-  http: ^1.2.2
+  # http package (ensure single entry below)
   shared_preferences: ^2.5.3
   
   # Image handling
@@ -98,6 +98,7 @@ dependency_overrides:
   material_color_utilities: ^0.13.0
   meta: ^1.17.0
   test_api: ^0.7.7
+  http: ^0.13.6
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
